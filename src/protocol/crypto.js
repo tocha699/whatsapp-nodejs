@@ -1,11 +1,47 @@
+const crypto = require('crypto');
 const PKCS7 = require('./PKCS7');
 
 module.exports = {
+  toBuffer(plaintext) {
+    return typeof plaintext === 'string'
+      ? Buffer.from(plaintext, 'base64')
+      : Buffer.from(plaintext);
+  },
   generateHeader(num, len = 6) {
     let str = Number(num).toString(16);
     str = new Array(len - str.length + 1).join('0') + str;
     return Buffer.from(str, 'hex');
   },
+
+  hash(message, type = 'md5', encode = 'base64') {
+    return crypto
+      .createHash(type)
+      .update(message)
+      .digest(encode);
+  },
+  hmacHash(key, message, type = 'sha256', encode = 'base64') {
+    const hmac = crypto.createHmac(type, this.toBuffer(key));
+    hmac.update(this.toBuffer(message));
+    return hmac.digest(encode);
+  },
+
+  hkdf(chaining_key, input_key_material, num_outputs = 2) {
+    const temp_key = this.hmacHash(chaining_key, input_key_material);
+    const output1 = this.hmacHash(temp_key, Buffer.from([0x01]));
+    const output2 = this.hmacHash(
+      temp_key,
+      Buffer.concat([this.toBuffer(output1), Buffer.from([0x02])])
+    );
+    if (num_outputs === 2) {
+      return [output1, output2];
+    }
+    const output3 = this.hmacHash(
+      temp_key,
+      Buffer.concat([this.toBuffer(output2), Buffer.from([0x03])])
+    );
+    return [output1, output2, output3];
+  },
+
   encryptAES256GCM(params, key, aad, iiv = 0, encode = '') {
     const keyBuffer = typeof key === 'string' ? Buffer.from(key, 'base64') : key;
     const iv = typeof iiv === 'object' ? iiv : this.generateHeader(iiv, 24);

@@ -1,3 +1,5 @@
+const crypto = require('./crypto');
+
 class CipherState {
   constructor(cipher, name) {
     this._cipher = cipher;
@@ -25,7 +27,7 @@ class CipherState {
   }
 
   rekey() {
-    const key = this._cipher.encrypt(
+    const key = crypto.encryptAES256GCM(
       Buffer.alloc(32).fill(0),
       this._key,
       Buffer.alloc(0),
@@ -36,14 +38,14 @@ class CipherState {
 
   encrypt_with_ad(ad, plaintext) {
     if (!this._key.length) return plaintext;
-    const result = this._cipher.encrypt(plaintext, this._key, ad, this._nonce);
+    const result = crypto.encryptAES256GCM(plaintext, this._key, ad, this._nonce);
     this._nonce += 1;
     return result;
   }
 
   decrypt_with_ad(ad, ciphertext) {
     if (!this._key.length) return ciphertext;
-    const result = this._cipher.decrypt(ciphertext, this._key, ad, this._nonce);
+    const result = crypto.decryptAES256GCM(ciphertext, this._key, ad, this._nonce);
     this._nonce += 1;
     return result;
   }
