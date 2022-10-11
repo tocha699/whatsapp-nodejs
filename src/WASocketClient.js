@@ -4,6 +4,7 @@ const EventEmitter = require('events');
 // const Decoder = require('./protocol/decoder');
 // const constants = require('./config/constants');
 const SocketProxy = require('./lib/SocketProxy');
+const HandShake = require('./protocol/HandShake');
 
 class WASocketClient extends EventEmitter {
   constructor(opts, socketManager) {
@@ -69,6 +70,16 @@ class WASocketClient extends EventEmitter {
       this.socket = new net.Socket();
     }
 
+    this.socket.on('data', async data => {
+      if (this.destroyed) return;
+      this.recv = Buffer.concat([this.recv, data]);
+      try {
+        this.parseData();
+      } catch (e) {
+        this.console.error(`Parse data error`, e);
+      }
+    });
+
     this.socket.on('error', e => {
       if (this.destroyed) return;
       this.console.error('wa socket client on error.', e);
@@ -93,10 +104,60 @@ class WASocketClient extends EventEmitter {
     };
     await new Promise((resolve, reject) => {
       this.socket.connect(options, async () => {
+        if (this.destroyed) return reject(new Error('WA socket has destroyed.'));
         this.console.debug('Connect whatsapp server succesed.', this.host, this.port);
         resolve();
       });
     });
+  }
+
+  async parseData() {
+    if (this.destroyed) return;
+    // 前三个字节标识包体长度
+    if (this.recv.length < 3) return;
+    const len = Number(`0x${this.recv.slice(0, 3).toString('hex')}`);
+    if (this.recv.length < len + 3) return;
+    const recv = this.recv.slice(3, len + 3);
+    this.recv = this.recv.slice(len + 3);
+
+    this.emit('data', recv);
+    this.len = 0;
+    this.parseData();
+  }
+
+  generateHeader(num, len = 6) {
+    let str = Number(num).toString(16);
+    str = new Array(len - str.length + 1).join('0') + str;
+    return Buffer.from(str, 'hex');
+  }
+
+  write(buffer) {
+    if (this.destroyed) return;
+    this.socket.write(buffer);
+  }
+
+  async send(message, header = true) {
+    try {
+      let buffer = null;
+      if (typeof message === 'string') {
+        buffer = Buffer.from(message, 'base64');
+      } else {
+        buffer = Buffer.from(message);
+      }
+      if (header) this.write(this.generateHeader(buffer.length));
+      this.write(buffer);
+    } catch (e) {
+      this.logger.error('发送数据失败', e);
+    }
+  }
+
+  async login() {
+    if (this.loginStatus === '登陆中') return;
+    if (this.loginStatus === '已登陆') return;
+    const handShake = new HandShake(this);
+    await handShake.login();
+    // 登陆成功
+    this.emit('login');
   }
 }
 
