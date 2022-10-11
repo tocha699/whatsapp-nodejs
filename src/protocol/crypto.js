@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const curve = require('curve25519-n');
 const PKCS7 = require('./PKCS7');
 
 module.exports = {
@@ -11,6 +12,12 @@ module.exports = {
     let str = Number(num).toString(16);
     str = new Array(len - str.length + 1).join('0') + str;
     return Buffer.from(str, 'hex');
+  },
+
+  dh(keyPair, key) {
+    const privateKey = curve.makeSecretKey(this.toBuffer(keyPair.private));
+    const aeskey = curve.deriveSharedSecret(privateKey, this.toBuffer(key)).toString('base64');
+    return Buffer.from(aeskey, 'base64');
   },
 
   hash(message, type = 'md5', encode = 'base64') {

@@ -21,11 +21,10 @@ class HandShake {
   }
 
   async login() {
-    const dh = new X25519DH();
     const cipher = new AESGCMCipher();
 
     const waSymmetricState = new WASymmetricState(new CipherState(cipher), new SHA256Hash());
-    const handshakeState = new SwitchableHandshakeState(new HandshakeState(waSymmetricState, dh));
+    const handshakeState = new SwitchableHandshakeState(new HandshakeState(waSymmetricState));
   }
 }
 

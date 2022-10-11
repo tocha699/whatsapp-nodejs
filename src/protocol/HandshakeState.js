@@ -1,13 +1,13 @@
 const BaseHandshakeState = require('./BaseHandShakeState');
 const utils = require('../lib/utils');
+const crypto = require('./crypto');
 
 class HandshakeState extends BaseHandshakeState {
   _TEMPLATE_PROTOCOL_NAME = 'Noise_{handshake}_{dh}_{cipher}_{hash}';
 
-  constructor(symmetricstate, dh) {
+  constructor(symmetricstate) {
     super();
     this._symmetricstate = symmetricstate; // type: SymmetricState
-    this._dh = dh; // type: DH
     this._s = null; // type: KeyPair config.client_static_keypair
     this._e = null; // type: KeyPair | None 本地生成的一对公私钥
     this._rs = null; // type: PublicKey | None 服务端公钥
@@ -121,7 +121,7 @@ class HandshakeState extends BaseHandshakeState {
   }
 
   _derive_protocol_name(handshake_pattern_name) {
-    return `Noise_${handshake_pattern_name}_${this._dh.name}_${this._symmetricstate.ciphername}_${this._symmetricstate.hashname}`;
+    return `Noise_${handshake_pattern_name}_25519_${this._symmetricstate.ciphername}_${this._symmetricstate.hashname}`;
   }
 
   write_message(payload, message_buffer) {
@@ -135,26 +135,25 @@ class HandshakeState extends BaseHandshakeState {
         if (this._pskmode) {
           this._symmetricstate.mix_key(this._e.public);
         }
-        // console.log('first e', this.e.public);
       } else if (token === 's') {
         const encrypted = this._symmetricstate.encrypt_and_hash(this._s.public);
         encrypted.map(val => message_buffer.push(val));
       } else if (token === 'ee') {
-        this._symmetricstate.mix_key(this._dh.dh(this._e, this._re));
+        this._symmetricstate.mix_key(crypto.dh(this._e, this._re));
       } else if (token === 'es') {
         if (this._initiator) {
-          this._symmetricstate.mix_key(this._dh.dh(this._e, this._rs));
+          this._symmetricstate.mix_key(crypto.dh(this._e, this._rs));
         } else {
-          this._symmetricstate.mix_key(this._dh.dh(this._s, this._re));
+          this._symmetricstate.mix_key(crypto.dh(this._s, this._re));
         }
       } else if (token === 'se') {
         if (this._initiator) {
-          this._symmetricstate.mix_key(this._dh.dh(this._s, this._re));
+          this._symmetricstate.mix_key(crypto.dh(this._s, this._re));
         } else {
-          this._symmetricstate.mix_key(this._dh.dh(this._e, this._rs));
+          this._symmetricstate.mix_key(crypto.dh(this._e, this._rs));
         }
       } else if (token === 'ss') {
-        this._symmetricstate.mix_key(this._dh.dh(this._s, this._rs));
+        this._symmetricstate.mix_key(crypto.dh(this._s, this._rs));
       } else if (token === 'psk') {
         this._symmetricstate.mix_key_and_hash(this._psks.shift());
       } else {
@@ -172,42 +171,41 @@ class HandshakeState extends BaseHandshakeState {
 
   read_message(message, payload_buffer) {
     const message_pattern = this._message_patterns.shift();
-    // console.log('message_pattern', message_pattern, this._dh.dhlen);
     let temp;
     for (let i = 0; i < message_pattern.length; i++) {
       const token = message_pattern[i];
       console.debug('read_message', token);
       if (token === 'e') {
-        this._re = message.slice(0, this._dh.dhlen);
-        message = message.slice(this._dh.dhlen);
+        this._re = message.slice(0, 32);
+        message = message.slice(32);
         this._symmetricstate.mix_hash(this._re);
         if (this._pskmode) {
           this._symmetricstate.mix_key(this._re);
         }
       } else if (token === 's') {
         if (this._symmetricstate.cipherstate_has_key()) {
-          temp = message.slice(0, this._dh.dhlen + 16);
+          temp = message.slice(0, 32 + 16);
         } else {
-          temp = message.slice(0, this._dh.dhlen);
+          temp = message.slice(0, 32);
         }
         message = message.slice(temp.length);
         this._rs = this._symmetricstate.decrypt_and_hash(temp);
       } else if (token === 'ee') {
-        this._symmetricstate.mix_key(this._dh.dh(this._e, this._re));
+        this._symmetricstate.mix_key(crypto.dh(this._e, this._re));
       } else if (token === 'es') {
         if (this._initiator) {
-          this._symmetricstate.mix_key(this._dh.dh(this._e, this._rs));
+          this._symmetricstate.mix_key(crypto.dh(this._e, this._rs));
         } else {
-          this._symmetricstate.mix_key(this._dh.dh(this._s, this._re));
+          this._symmetricstate.mix_key(crypto.dh(this._s, this._re));
         }
       } else if (token === 'se') {
         if (this._initiator) {
-          this._symmetricstate.mix_key(this._dh.dh(this._s, this._re));
+          this._symmetricstate.mix_key(crypto.dh(this._s, this._re));
         } else {
-          this._symmetricstate.mix_key(this._dh.dh(this._e, this._rs));
+          this._symmetricstate.mix_key(crypto.dh(this._e, this._rs));
         }
       } else if (token === 'ss') {
-        this._symmetricstate.mix_key(this._dh.dh(this._s, this._rs));
+        this._symmetricstate.mix_key(crypto.dh(this._s, this._rs));
       } else if (token === 'psk') {
         this._symmetricstate.mix_key_and_hash(this._psks.shift());
       } else {
