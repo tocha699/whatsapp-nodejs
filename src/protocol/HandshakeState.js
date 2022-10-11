@@ -1,12 +1,10 @@
-const BaseHandshakeState = require('./BaseHandShakeState');
 const utils = require('../lib/utils');
 const crypto = require('./crypto');
 
-class HandshakeState extends BaseHandshakeState {
+class HandshakeState {
   _TEMPLATE_PROTOCOL_NAME = 'Noise_{handshake}_{dh}_{cipher}_{hash}';
 
   constructor(symmetricstate) {
-    super();
     this._symmetricstate = symmetricstate; // type: SymmetricState
     this._s = null; // type: KeyPair config.client_static_keypair
     this._e = null; // type: KeyPair | None 本地生成的一对公私钥
