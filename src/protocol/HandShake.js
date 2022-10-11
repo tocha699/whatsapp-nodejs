@@ -1,7 +1,5 @@
-const X25519DH = require('./X25519DH');
 const AESGCMCipher = require('./AESGCMCipher');
 const CipherState = require('./CipherState');
-const SHA256Hash = require('./SHA256Hash');
 const WASymmetricState = require('./WASymmetricState');
 const HandshakeState = require('./HandshakeState');
 const SwitchableHandshakeState = require('./SwitchableHandshakeState');
@@ -23,7 +21,7 @@ class HandShake {
   async login() {
     const cipher = new AESGCMCipher();
 
-    const waSymmetricState = new WASymmetricState(new CipherState(cipher), new SHA256Hash());
+    const waSymmetricState = new WASymmetricState(new CipherState(cipher));
     const handshakeState = new SwitchableHandshakeState(new HandshakeState(waSymmetricState));
   }
 }
