@@ -1,8 +1,12 @@
 const globalConfig = require('/etc/whatsapp.json');
 
 module.exports = {
+  version: '2.22.21.71', // 最新安卓版本
+  md5Class: 'vZBCF10FCpZe5K5dQdt7fA==',
+
   mongodb: 'mongodb://localhost:27017/whatsapp',
-  isUseBufferLength: true,
+
+  isUseBufferLength: true, // 使用二进制流计算包体长度
 
   signature: `MIIDMjCCAvCgAwIBAgIETCU2pDALBgcqhkjOOAQDBQAwfDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFDASBgNV
   BAcTC1NhbnRhIENsYXJhMRYwFAYDVQQKEw1XaGF0c0FwcCBJbmMuMRQwEgYDVQQLEwtFbmdpbmVlcmluZzEUMBIGA1UEAxMLQnJ
@@ -17,8 +21,6 @@ module.exports = {
   YHNtYoIvt5R3X6YZylbPftF/8ayWTALBgcqhkjOOAQDBQADLwAwLAIUAKYCp0d6z4QQdyN74JDfQ2WCyi8CFDUM4CaNB+ceVXd
   KtOrNTQcc0e+t`,
 
-  version: '2.22.21.71',
-  md5Class: 'vZBCF10FCpZe5K5dQdt7fA==',
   key:
     'eQV5aq/Cg63Gsq1sshN9T3gh+UUp0wIw0xgHYT1bnCjEqOJQKCRrWxdAe2yvsDeCJL+Y4G3PRD2HUF7oUgiGo8vGlNJOaux26k+A2F3hj8A=',
 
@@ -32,6 +34,38 @@ module.exports = {
   deviceName: 'Pixel_4a_(5G)',
   manufacturer: 'Googole',
   buildVersion: 'google-user 7.1.2 20171130.276299 release-keys',
+
+  domain: 's.whatsapp.net',
+  endpoints: [
+    ['e1.whatsapp.net', 443],
+    ['e2.whatsapp.net', 443],
+    ['e3.whatsapp.net', 443],
+    ['e4.whatsapp.net', 443],
+    ['e5.whatsapp.net', 443],
+    ['e6.whatsapp.net', 443],
+    ['e7.whatsapp.net', 443],
+    ['e8.whatsapp.net', 443],
+    ['e9.whatsapp.net', 443],
+    ['e10.whatsapp.net', 443],
+    ['e11.whatsapp.net', 443],
+    ['e12.whatsapp.net', 443],
+    ['e13.whatsapp.net', 443],
+    ['e14.whatsapp.net', 443],
+    ['e15.whatsapp.net', 443],
+    ['e16.whatsapp.net', 443],
+  ],
+  whatsappServer: 's.whatsapp.net',
+  whatsappGroupServer: 'g.us',
+  PREVIEW_WIDTH: 64,
+  PREVIEW_HEIGHT: 64,
+  getEndPoint() {
+    const len = this.endpoints.length;
+    const endpoint = this.endpoints[Math.floor(Math.random() * len)];
+    return {
+      host: endpoint[0],
+      port: 5222,
+    };
+  },
 
   ...globalConfig,
 };
