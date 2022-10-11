@@ -35,7 +35,7 @@ class WASymmetricState {
   }
 
   cipherstate_has_key() {
-    return this._cipherstate.has_key();
+    return this._cipherstate.hasKey();
   }
 
   // Noise_XX_25519_AESGCM_SHA256
@@ -63,7 +63,7 @@ class WASymmetricState {
     this._ck = Buffer.from(output[0], 'base64');
     const temp_k = Buffer.from(output[1], 'base64');
 
-    this._cipherstate.initialize_key(temp_k);
+    this._cipherstate.setKey(temp_k);
   }
 
   mix_hash(data) {
@@ -76,7 +76,7 @@ class WASymmetricState {
     const temp_h = Buffer.from(output[1], 'base64');
     const temp_k = Buffer.from(output[1], 'base64');
     this.mix_hash(temp_h);
-    this._cipherstate.initialize_key(temp_k);
+    this._cipherstate.setKey(temp_k);
   }
 
   get_handshake_hash() {
@@ -84,13 +84,13 @@ class WASymmetricState {
   }
 
   // encrypt_and_hash(plaintext) {
-  //   const ciphertext = this._cipherstate.encrypt_with_ad(this._h, this.toBuffer(plaintext));
+  //   const ciphertext = this._cipherstate.encryptAES256GCM(this._h, this.toBuffer(plaintext));
   //   this.mix_hash(ciphertext);
   //   return ciphertext;
   // }
 
   decrypt_and_hash(ciphertext) {
-    const plaintext = this._cipherstate.decrypt_with_ad(this._h, this.toBuffer(ciphertext));
+    const plaintext = this._cipherstate.decryptAES256GCM(this._h, this.toBuffer(ciphertext));
     this.mix_hash(ciphertext);
     return plaintext;
   }
@@ -108,8 +108,8 @@ class WASymmetricState {
   }
 
   encrypt_and_hash(plaintext) {
-    const ciphertext = this._cipherstate.encrypt_with_ad(this._h, this.toBuffer(plaintext));
-    if (this._cipherstate.has_key()) this.mix_hash(ciphertext);
+    const ciphertext = this._cipherstate.encryptAES256GCM(this._h, this.toBuffer(plaintext));
+    if (this._cipherstate.hasKey()) this.mix_hash(ciphertext);
     return ciphertext;
   }
 }
