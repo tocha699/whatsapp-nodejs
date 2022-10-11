@@ -102,8 +102,8 @@ class WASymmetricState {
 
     const c1 = new CipherState('send');
     const c2 = new CipherState('recv');
-    c1.initialize_key(temp_k1);
-    c2.initialize_key(temp_k2);
+    c1.setKey(temp_k1);
+    c2.setKey(temp_k2);
     return [c1, c2];
   }
 
