@@ -67,8 +67,8 @@ class GuardedHandshakeState extends ForwarderHandshakeState {
   ) {
     try {
       this._handshake_machine.start();
-    } catch (e) {
-      this._convert_machine_error(e, 'initialize');
+    } catch (err) {
+      this._convert_machine_error(err, 'initialize');
     }
     this._pattern_machine = this._derive_pattern_machine(handshake_pattern, initiator);
     return this._handshakestate.initialize(
@@ -113,15 +113,15 @@ class GuardedHandshakeState extends ForwarderHandshakeState {
 
   _convert_machine_error(machine_error, bad_method) {
     let current = null;
-    if (this._handshake_machine.state == 'init') {
+    if (this._handshake_machine.state === 'init') {
       current = 'initialize';
-    } else if (this._handshake_machine.state == 'handshake') {
-      current = bad_method == 'read_message' ? 'write_message' : 'write_message';
+    } else if (this._handshake_machine.state === 'handshake') {
+      current = bad_method === 'read_message' ? 'write_message' : 'write_message';
     } else {
       current = this._handshake_machine.state;
     }
     // "Cannot {bad_method} while in {current} phase."
-    error_message = this.ERROR_TEMPL.replace('{bad_method}', bad_method).replace(
+    const error_message = this.ERROR_TEMPL.replace('{bad_method}', bad_method).replace(
       '{current}',
       current
     );

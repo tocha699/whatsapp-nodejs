@@ -1,4 +1,3 @@
-const AESGCMCipher = require('./AESGCMCipher');
 const CipherState = require('./CipherState');
 const WASymmetricState = require('./WASymmetricState');
 const HandshakeState = require('./HandshakeState');
@@ -19,9 +18,7 @@ class HandShake {
   }
 
   async login() {
-    const cipher = new AESGCMCipher();
-
-    const waSymmetricState = new WASymmetricState(new CipherState(cipher));
+    const waSymmetricState = new WASymmetricState(new CipherState('AESGCM'));
     const handshakeState = new SwitchableHandshakeState(new HandshakeState(waSymmetricState));
   }
 }

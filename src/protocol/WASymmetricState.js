@@ -12,6 +12,8 @@ class WASymmetricState {
     this._h = Buffer.alloc(0);
 
     this.hashname = 'SHA256';
+
+    this.ciphername = 'AESGCM';
   }
 
   set _ck(val) {
@@ -30,10 +32,6 @@ class WASymmetricState {
 
   get _h() {
     return this.__h;
-  }
-
-  get ciphername() {
-    return this._cipherstate.cipher.name;
   }
 
   cipherstate_has_key() {
@@ -102,8 +100,8 @@ class WASymmetricState {
     const temp_k1 = Buffer.from(output[0], 'base64');
     const temp_k2 = Buffer.from(output[1], 'base64');
 
-    const c1 = new CipherState(this._cipherstate.cipher, 'send');
-    const c2 = new CipherState(this._cipherstate.cipher, 'recv');
+    const c1 = new CipherState('send');
+    const c2 = new CipherState('recv');
     c1.initialize_key(temp_k1);
     c2.initialize_key(temp_k2);
     return [c1, c2];

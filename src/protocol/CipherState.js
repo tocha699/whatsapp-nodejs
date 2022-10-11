@@ -1,16 +1,11 @@
 const crypto = require('./crypto');
 
 class CipherState {
-  constructor(cipher, name) {
-    this._cipher = cipher;
+  constructor(name) {
     // aes 加解密的 key 字段
     this._key = Buffer.alloc(0);
     this._nonce = 0;
     this.name = name;
-  }
-
-  get cipher() {
-    return this._cipher;
   }
 
   initialize_key(key) {
