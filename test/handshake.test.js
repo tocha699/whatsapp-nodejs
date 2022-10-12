@@ -29,6 +29,10 @@ const main = async () => {
   const handShake = new HandShake(waSocketClient);
 
   await handShake.start(account, account.serverStaticPublic);
+
+  handShake.waSocketClient.on('data', data => {
+    console.log('data', data);
+  });
 };
 
 main();

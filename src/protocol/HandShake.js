@@ -7,6 +7,7 @@ const { ClientHello, HandshakeMessage } = require('../protobuf/pb');
 const FallbackPatternModifier = require('./FallbackPatternModifier');
 
 const XXHandshakePattern = require('./handshakepatterns/XXHandshakePattern');
+const Decoder = require('../bin/decoder');
 
 class HandShake {
   constructor(waSocketClient) {
@@ -25,6 +26,29 @@ class HandShake {
     const waSymmetricState = new WASymmetricState(cipherState);
     const handshakeState = new SwitchableHandshakeState(new HandshakeState(waSymmetricState));
     this.handshakeState = handshakeState;
+
+    this.isHandShake = false;
+
+    this.waSocketClient.on('data', async data => {
+      if (!this.isHandShake) return;
+      console.log('data', data);
+      const buffer = this.decrypt(data);
+      const decoder = new Decoder();
+      const node = await decoder.getProtocolTreeNode(buffer);
+      const str = node.toString(); // .substr(0, 1000);
+      console.info('收包<---', str);
+    });
+  }
+
+  toBuffer(plaintext) {
+    if (typeof plaintext === 'undefined') return Buffer.alloc(0);
+    return typeof plaintext === 'string'
+      ? Buffer.from(plaintext, 'base64')
+      : Buffer.from(plaintext);
+  }
+
+  decrypt(message) {
+    return this.recvCipherState.decryptAES256GCM(Buffer.alloc(0), this.toBuffer(message));
   }
 
   async start(config, serverStaticPublic) {
@@ -57,6 +81,7 @@ class HandShake {
       cipherstatepair = await this.startHandshakeXX(config, clientStaticKeypair);
     }
     console.info('Handshake success.');
+    this.isHandShake = true;
     return cipherstatepair;
   }
 
@@ -150,7 +175,7 @@ class HandShake {
           serverHello.static,
           Buffer.from(serverHello.payload, 'base64'),
         ]);
-        const cipherpair = this._handshakestate.read_message(message, []);
+        const cipherpair = this.handshakeState.read_message(message, []);
         [this.sendCipherState, this.recvCipherState] = cipherpair;
         // 登陆成功
         resolve(cipherpair);

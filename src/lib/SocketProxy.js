@@ -214,7 +214,7 @@ class Socket extends net.Socket {
         const response = data[1];
         if (response !== 0x00) {
           if (ERROR_MAP[response]) return reject(new Error(ERROR_MAP[response]));
-          return reject(new Error('未知错误'));
+          return reject(new Error('Unknown error'));
         }
         resolve();
       });
