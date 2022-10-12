@@ -50,8 +50,8 @@ module.exports = {
   osName: String,
   oSVersion: String,
   deviceName: String,
-  manufactirer: String,
-  buildVersuib: String,
+  manufacturer: String,
+  buildVersion: String,
 
   // ignore
   isCheck: Boolean,
