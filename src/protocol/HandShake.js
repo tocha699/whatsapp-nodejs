@@ -3,7 +3,10 @@ const WASymmetricState = require('./WASymmetricState');
 const HandshakeState = require('./HandshakeState');
 const SwitchableHandshakeState = require('./SwitchableHandshakeState');
 const IKHandshakePattern = require('./handshakepatterns/IKHandshakePattern');
-const { ClientHelloProto, HandShakeMessageProto } = require('../protobuf/pb');
+const { ClientHello, HandshakeMessage } = require('../protobuf/pb');
+const FallbackPatternModifier = require('./FallbackPatternModifier');
+
+const XXHandshakePattern = require('./handshakepatterns/XXHandshakePattern');
 
 class HandShake {
   constructor(waSocketClient) {
@@ -25,7 +28,7 @@ class HandShake {
   }
 
   async start(config, serverStaticPublic) {
-    let clientStaticKeypair = Buffer.from(config.client_static_keypair, 'base64');
+    let clientStaticKeypair = Buffer.from(config.clientStaticKeypair, 'base64');
     clientStaticKeypair = {
       private: clientStaticKeypair.slice(0, 32),
       public: clientStaticKeypair.slice(-32),
@@ -57,6 +60,41 @@ class HandShake {
     return cipherstatepair;
   }
 
+  async switchHandshakeXXFallback(clientStaticKeypair, payload, serverHello) {
+    console.debug('switchHandshakeXXFallback');
+    this.handshakeState.switch(
+      new FallbackPatternModifier().modify(new XXHandshakePattern()),
+      true,
+      this._prologue,
+      clientStaticKeypair
+    );
+    const payload_buffer = [];
+    const message = Buffer.concat([
+      Buffer.from(serverHello.ephemeral, 'base64'),
+      Buffer.from(serverHello.static, 'base64'),
+      Buffer.from(serverHello.payload, 'base64'),
+    ]);
+    this.handshakeState.read_message(message, payload_buffer);
+
+    const message_array = [];
+    const cipherpair = this.handshakeState.write_message(payload, message_array);
+    const message_buffer = Buffer.from(message_array);
+
+    const clientFinishBuffer = HandshakeMessage.HandshakeMessage.encode(
+      HandshakeMessage.HandshakeMessage.create({
+        clientFinish: {
+          static: message_buffer.slice(0, 48),
+          payload: message_buffer.slice(48),
+        },
+      })
+    ).finish();
+    this.waSocketClient.send(clientFinishBuffer);
+    // this.waSocketClient.setSendLogin(true);
+    [this.sendCipherState, this.recvCipherState] = cipherpair;
+    // 登陆成功
+    return cipherpair;
+  }
+
   async startHandshakeIK(config, clientStaticKeypair, serverStaticPublic) {
     const ik = new IKHandshakePattern();
     this.handshakeState.initialize(
@@ -67,23 +105,17 @@ class HandShake {
       null,
       serverStaticPublic
     );
-    this.waSocketClient.write(this.EDGE_HEADER);
-    this.waSocketClient.write(config.edge_routing_info || 'CAwIBQ==');
-    this.waSocketClient.write(this.HEADER, false);
 
     const clientInfoBuffer = this.createPayload(config);
-
     const messageArray = [];
-
     this.handshakeState.write_message(clientInfoBuffer, messageArray);
 
     const messageBuffer = Buffer.from(messageArray);
     const ephemeral_public = messageBuffer.slice(0, 32);
     const static_public = messageBuffer.slice(32, 32 + 48);
     const payload = messageBuffer.slice(32 + 48);
-    const { HandshakeMessage } = HandShakeMessageProto.HandshakeMessage;
-    const clientHelloBuffer = HandshakeMessage.encode(
-      HandshakeMessage.create({
+    const clientHelloBuffer = HandshakeMessage.HandshakeMessage.encode(
+      HandshakeMessage.HandshakeMessage.create({
         clientHello: {
           ephemeral: ephemeral_public,
           static: static_public,
@@ -92,6 +124,9 @@ class HandShake {
       })
     ).finish();
 
+    this.waSocketClient.send(this.EDGE_HEADER, false);
+    this.waSocketClient.send(config.edgeRoutingInfo || 'CAwIBQ==');
+    this.waSocketClient.send(this.HEADER, false);
     this.waSocketClient.send(clientHelloBuffer);
 
     return new Promise((resolve, reject) => {
@@ -135,20 +170,20 @@ class HandShake {
   }
 
   createPayload(config) {
-    console.debug('client version:', this.env.VERSION);
+    console.debug('client version:', config.version);
     console.debug(
       'account:',
       config.cc,
-      config.phone,
+      config.mobile,
       config.mcc,
       config.mnc,
       'platform',
       config.platform
     );
-    console.debug('client info:', this.env.OS_VERSION, this.env.MANUFACTURER, this.env.DEVICE_NAME);
-    const appVersion = this.env.VERSION.split('.');
+    console.debug('client info:', config.oSVersion, config.manufacturer, config.deviceName);
+    const appVersion = config.version.split('.');
     const clientConfig = {
-      username: config.phone,
+      username: config.mobile,
       passive: false, // 是否接收被动消息
       // passive: config.passive,
       useragent: {
@@ -161,10 +196,10 @@ class HandShake {
         },
         mcc: config.mcc || '000',
         mnc: config.mnc || '000',
-        osVersion: this.env.OS_VERSION,
-        manufacturer: this.env.MANUFACTURER,
-        device: this.env.DEVICE_NAME,
-        osBuildNumber: this.env.OS_VERSION,
+        osVersion: config.oSVersion,
+        manufacturer: config.manufacturer,
+        device: config.deviceName,
+        osBuildNumber: config.oSVersion,
         phoneId: config.fdid || '',
         localeLanguageIso_639_1: config.lg || 'en',
         localeCountryIso_3166_1Alpha_2: config.lc || 'US',
@@ -188,7 +223,7 @@ class HandShake {
       clientConfig.tag24 = 5;
     }
 
-    const ClientConfig = ClientHelloProto.ClientHello.C2S;
+    const ClientConfig = ClientHello.C2S;
     const buffer = ClientConfig.encode(ClientConfig.create(clientConfig)).finish();
     return buffer;
   }

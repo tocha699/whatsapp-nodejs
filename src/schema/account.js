@@ -29,7 +29,7 @@ module.exports = {
 
   lc: String,
   lg: String,
-  edge_routing_info: String,
+  edgeRoutingInfo: String,
   expid: String,
   fdid: String,
   id: String,
