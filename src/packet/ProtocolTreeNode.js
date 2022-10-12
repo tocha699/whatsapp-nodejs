@@ -1,4 +1,4 @@
-const WriteEncoder = require('../protocol/token/encoder');
+const WriteEncoder = require('../bin/encoder');
 
 class ProtocolTreeNode {
   constructor(tag, attributes = null, children = null, data = null) {
