@@ -31,16 +31,13 @@ class Socket extends net.Socket {
 
     const _on = this.on;
     this.on = (name, listener) => {
+      if (!name.match('_tmp')) return;
       let realName = name;
       if (!this.isConnected) {
-        if (name.match('_tmp')) {
-          realName = name.substr(0, name.length - 4);
-        }
+        realName = name.substr(0, name.length - 4);
       }
       _on.call(this, realName, (...args) => {
-        if (!this.isConnected) {
-          if (!name.match('_tmp')) return;
-        }
+        if (!this.isConnected && !name.match('_tmp')) return;
         listener.apply(this, args);
         if (name === 'close') {
           this.isConnected = false;
@@ -153,7 +150,7 @@ class Socket extends net.Socket {
         if (authType !== 0x00 && authType !== 0x02)
           return reject(new Error(`Unexpected socks authentication method: ${authType}`));
         if (authType === 0x00) {
-          console.debug('No need proxy auth.');
+          console.debug('Not need auth.');
           return resolve();
         }
         console.debug('Use auth: ', this.proxyUsername, this.proxyPassword);
@@ -213,7 +210,7 @@ class Socket extends net.Socket {
         const response = data[1];
         if (response !== 0x00) {
           if (ERROR_MAP[response]) return reject(new Error(ERROR_MAP[response]));
-          return reject(new Error('Unknown Error.'));
+          return reject(new Error('未知错误'));
         }
         resolve();
       });
