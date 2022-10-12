@@ -131,7 +131,7 @@ class HandShake {
 
     return new Promise((resolve, reject) => {
       this.waSocketClient.once('data', async buffer => {
-        const { serverHello } = HandshakeMessage.decode(buffer).toJSON();
+        const { serverHello } = HandshakeMessage.HandshakeMessage.decode(buffer).toJSON();
         console.debug('serverHello', serverHello);
         if (serverHello.static && serverHello.static.length) {
           const e = new Error('');

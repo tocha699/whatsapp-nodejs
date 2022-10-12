@@ -30,25 +30,31 @@ class Socket extends net.Socket {
     this.isConnected = false;
 
     const _on = this.on;
+    this._on = _on;
+
     this.on = (name, listener) => {
-      if (!name.match('_tmp') && !this.isConnected) return;
-      let realName = name;
-      if (!this.isConnected) {
-        realName = name.substr(0, name.length - 4);
-      }
-      _on.call(this, realName, (...args) => {
-        if (!this.isConnected && !name.match('_tmp')) return;
-        listener.apply(this, args);
-        if (name === 'close') {
-          this.isConnected = false;
+      const isTmp = !!name.match('_tmp');
+      _on.call(this, name.replace('_tmp', ''), (...args) => {
+        if (this.isConnected) {
+          listener.apply(this, args);
+        } else if (isTmp) {
+          listener.apply(this, args);
+        } else if (name === 'connect') {
+          listener.apply(this, args);
         }
       });
     };
   }
 
   async connect(opts = {}, listener) {
-    if (this.proxyType === 'socks5') return this.connectSocks(opts, listener);
-    return this.connnectHttp(opts, listener);
+    if (this.proxyType === 'socks5') {
+      await this.connectSocks(opts, listener);
+    } else {
+      await this.connnectHttp(opts, listener);
+    }
+    this.on = this._on;
+    this.isConnected = true;
+    console.log('Socket proxy connect success.');
   }
 
   async connnectHttp(opts = {}, listener) {
@@ -66,7 +72,7 @@ class Socket extends net.Socket {
         port: this.proxyPort,
         host: this.proxyHost,
       });
-      this.on('connect_tmp', async () => {
+      this.once('connect_tmp', () => {
         console.debug('Send Connect method.');
         this.write(`CONNECT ${targetHost}:${targetPort} HTTP/1.1\r\n`);
         this.write('Connection: keep-alive\r\n');
@@ -84,7 +90,6 @@ class Socket extends net.Socket {
           if (!str.match(/^HTTP\/1\.1 200/i)) {
             return reject(new Error(str));
           }
-          this.isConnected = true;
           if (typeof listener === 'function') listener();
           console.debug('Connnect socket success.');
           resolve();
@@ -105,7 +110,7 @@ class Socket extends net.Socket {
         console.debug('Start connect target: ', `${host}:${port}`);
       }
       super.connect(params);
-      this.on('connect_tmp', async () => {
+      this.once('connect_tmp', async () => {
         if (this.proxyHost) {
           console.debug(`Connect proxy success:`, ` ${this.proxyType}://${host}:${port}`);
         } else {
@@ -114,7 +119,6 @@ class Socket extends net.Socket {
         try {
           await this.auth();
           await this.connectTarget(opts);
-          this.isConnected = true;
           if (typeof listener === 'function') listener();
           resolve();
         } catch (e) {

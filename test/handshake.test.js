@@ -12,8 +12,9 @@ const main = async () => {
   await db.init();
   const waSocketClient = new WASocketClient({
     proxy: {
-      host: 'localhost',
-      port: 1080,
+      host: '127.0.0.1',
+      port: 1087,
+      type: 'http',
     },
     mobile: '233244040964',
     socketName: 'Socket_1',
