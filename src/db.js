@@ -36,4 +36,9 @@ module.exports = {
 
     this.dayreport = mongoose.model('dayreport', dayreport);
   },
+
+  async findAccount(mobile) {
+    const acc = await this.account.findOne({ mobile });
+    return acc;
+  },
 };

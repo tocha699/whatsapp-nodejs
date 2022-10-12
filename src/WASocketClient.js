@@ -70,6 +70,8 @@ class WASocketClient extends EventEmitter {
       this.socket = new net.Socket();
     }
 
+    this.socket.setKeepAlive(true);
+
     this.socket.on('data', async data => {
       if (this.destroyed) return;
       this.recv = Buffer.concat([this.recv, data]);

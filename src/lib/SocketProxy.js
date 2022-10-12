@@ -31,7 +31,7 @@ class Socket extends net.Socket {
 
     const _on = this.on;
     this.on = (name, listener) => {
-      if (!name.match('_tmp')) return;
+      if (!name.match('_tmp') && !this.isConnected) return;
       let realName = name;
       if (!this.isConnected) {
         realName = name.substr(0, name.length - 4);
