@@ -7,10 +7,9 @@
 
 TODO:
 
-- [ ] 完成登陆 2022.10.15
+- [x] 完成登陆 2022.10.15
 - [ ] 完成注册 2022.10.31
 - [ ] 完成收发消息 2022.11.15
-
 
 ### 关于
 
@@ -21,3 +20,24 @@ TODO:
 * nodejs: 16.17.1 LTS 版本
 * mongodb: - 
 * redis: -
+
+### 使用
+
+``` javascript
+const Whatsapp = require('./src/whatsapp');
+
+cosnt whatsapp = new Whatsapp();
+await whatsapp.init({
+  mobile: '',
+  cc:'',
+  mnc:'',
+  mcc:'',
+  proxy:{
+    host: '127.0.0.1',
+    port: 1080
+  }
+});
+
+await whatsapp.login();
+
+```

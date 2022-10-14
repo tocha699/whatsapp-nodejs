@@ -12,10 +12,11 @@ class WASocketClient extends EventEmitter {
 
     this.opts = opts;
 
-    const { proxy, mobile, socketName, endpoint } = opts;
+    const { proxy, mobile, socketName, endpoint, account } = opts;
 
     this.mobile = mobile;
     this.socketName = socketName;
+    this.account = account;
 
     const { port, host } = endpoint;
     this.port = port;

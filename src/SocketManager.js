@@ -4,6 +4,8 @@ const SocketClient = require('./SocketClient');
 const db = require('./db');
 const WASocketClient = require('./WASocketClient');
 const config = require('./config');
+const HandShake = require('./protocol/HandShake');
+const libsignal = require('./lib/libsignal-protocol');
 
 class SocketManager {
   constructor() {
@@ -27,6 +29,7 @@ class SocketManager {
   }
 
   async initServer(port) {
+    libsignal.curve = (await libsignal.default()).Curve;
     await db.init();
 
     const server = net.createServer(socket => {
@@ -46,12 +49,32 @@ class SocketManager {
     this.server = server;
   }
 
-  async initWASocket() {
+  async initWASocket(opts, account) {
     this.id++;
+    const { mobile, cc, mnc, mcc, proxy } = opts;
     const socketName = `Socket_${this.id}`;
-    const wasClient = new WASocketClient({ socketName });
+    // const waSocketClient = new WASocketClient({ socketName });
 
-    // wasClient.on('error')
+    const waSocketClient = new WASocketClient(
+      {
+        ...opts,
+        socketName,
+        endpoint: config.getEndPoint(),
+        account,
+      },
+      this
+    );
+
+    this.wasockets[socketName] = waSocketClient;
+    return socketName;
+  }
+
+  async startLogin(socketName) {
+    const waSocketClient = this.wasockets[socketName];
+    const { account } = waSocketClient;
+    await waSocketClient.init();
+    const handShake = new HandShake(waSocketClient);
+    await handShake.start(account, account.serverStaticPublic);
   }
 
   async addSocketClient(socket) {
