@@ -1,13 +1,10 @@
 {
   "name": "whatsapp",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
-  "main": "src/server.js",
+  "main": "src/index.js",
   "directories": {
     "doc": "docs"
-  },
-  "egg": {
-    "framework": "eggooo"
   },
   "scripts": {
     "start": "NODE_ENV=production npm run startHttp && npm run startSocket",

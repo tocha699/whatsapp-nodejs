@@ -9,7 +9,9 @@ process.on('uncaughtException', error => {
 });
 // UnhandledPromiseRejection
 
-const listenPort = 9002;
-const socketManager = new SocketManager();
-
-socketManager.initServer(listenPort);
+module.exports = {
+  init(port = 9002) {
+    const socketManager = new SocketManager();
+    socketManager.initServer(port);
+  },
+};
