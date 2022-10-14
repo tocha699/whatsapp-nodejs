@@ -1,6 +1,6 @@
 const net = require('net');
 const EventEmitter = require('events');
-const SocketProxy = require('./lib/SocketProxy');
+const SocketClientProxy = require('./lib/SocketClientProxy');
 const HandShake = require('./protocol/HandShake');
 
 class WASocketClient extends EventEmitter {
@@ -63,11 +63,9 @@ class WASocketClient extends EventEmitter {
     this.console.debug('Start connect whatsapp server.', this.host, this.port);
 
     if (this.proxy) {
-      this.socket = new SocketProxy({ proxy: this.proxy });
       this.console.debug('Use proxy', this.proxy);
-    } else {
-      this.socket = new net.Socket();
     }
+    this.socket = new SocketClientProxy({ proxy: this.proxy });
 
     this.socket.setKeepAlive(true);
 

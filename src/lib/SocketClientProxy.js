@@ -18,6 +18,7 @@ class Socket extends net.Socket {
   constructor(opts = {}) {
     super(opts);
     const { proxy = {} } = opts;
+    if (!proxy || !proxy.host) return;
     const { port = 1080, host = '', username = '', password = '', type = 'socks5' } = proxy;
     if (username && !password) throw new Error('You need to pass the password params.');
     this.proxy = proxy;
@@ -47,6 +48,11 @@ class Socket extends net.Socket {
   }
 
   async connect(opts = {}, listener) {
+    if (!this.proxy) {
+      // eslint-disable-next-line
+      super.connect.apply(this, arguments);
+      return;
+    }
     if (this.proxyType === 'socks5') {
       await this.connectSocks(opts, listener);
     } else {

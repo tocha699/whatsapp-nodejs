@@ -23,17 +23,12 @@
     "npm run errorlog": "tail -f /root/logs/whatsapp/common-error.log -n 500",
     "pbjs": "pbjs -t static-module -w commonjs -o src/protobuf/pb.js proto/*.proto",
     "pub": "sh ./scripts/shell/pubserver.sh",
-    "f": "frida -U --no-pause -f com.whatsapp -l scripts/frida/main.js",
-    "socket": "frida -U --no-pause -f com.whatsapp -l frida/socket.js",
     "debug": "egg-bin debug",
-    "test1": "npm run lint -- --fix && npm run test-local",
     "test": "mocha -t 6000000000 -b -w test/*",
     "test-local": "egg-bin test --watchAll -t 6000000",
     "cov": "egg-bin cov",
     "lint": "eslint .",
-    "ci": "npm run lint && npm run cov",
-    "rpc": "egg-rpc-generator",
-    "init": "npm run rpc"
+    "ci": "npm run lint && npm run cov"
   },
   "engines": {
     "node": ">=16.11.0"
