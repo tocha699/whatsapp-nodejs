@@ -26,18 +26,23 @@ TODO:
 ``` javascript
 const Whatsapp = require('./src/whatsapp');
 
-cosnt whatsapp = new Whatsapp();
-await whatsapp.init({
-  mobile: '',
-  cc:'',
-  mnc:'',
-  mcc:'',
-  proxy:{
-    host: '127.0.0.1',
-    port: 1080
-  }
-});
+const main = async()=>{
+  const whatsapp = new Whatsapp();
+  await whatsapp.init({
+    mobile: '',
+    cc:'',
+    mnc:'',
+    mcc:'',
+    proxy:{
+      host: '127.0.0.1',
+      port: 1080
+    }
+  });
 
-await whatsapp.login();
+  await whatsapp.login();
+};
+
+main();
+
 
 ```
