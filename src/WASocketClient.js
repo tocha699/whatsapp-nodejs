@@ -1,7 +1,7 @@
-const net = require('net');
 const EventEmitter = require('events');
 const SocketClientProxy = require('./lib/SocketClientProxy');
-const HandShake = require('./protocol/HandShake');
+const HandShake = require('./bin/HandShake');
+const Decoder = require('./bin/decoder');
 
 class WASocketClient extends EventEmitter {
   constructor(opts, socketManager) {
@@ -9,12 +9,11 @@ class WASocketClient extends EventEmitter {
 
     this.opts = opts;
 
-    const { proxy, mobile, socketName, endpoint, account, whatsapp } = opts;
+    const { proxy, mobile, socketName, endpoint, account } = opts;
 
     this.mobile = mobile;
     this.socketName = socketName;
     this.account = account;
-    this.whatsapp = whatsapp;
 
     const { port, host } = endpoint;
     this.port = port;
@@ -39,6 +38,7 @@ class WASocketClient extends EventEmitter {
     // 状态标识
     this.inited = false;
     this.destroyed = false;
+    this.isLogin = false;
 
     // 缓冲区
     this.recv = Buffer.alloc(0);
@@ -47,6 +47,7 @@ class WASocketClient extends EventEmitter {
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.isLogin = false;
 
     this.socket.destroy();
     this.socket = null;
@@ -55,6 +56,16 @@ class WASocketClient extends EventEmitter {
     this.socketManager = null;
 
     this.emit('destroy', this.socketName);
+  }
+
+  async login() {
+    await this.init();
+
+    const handShake = new HandShake(this);
+    this.handShake = handShake;
+    await handShake.start(this.account, this.account.serverStaticPublic);
+
+    this.isLogin = true;
   }
 
   async init() {
@@ -116,28 +127,51 @@ class WASocketClient extends EventEmitter {
     if (this.recv.length < 3) return;
     const len = Number(`0x${this.recv.slice(0, 3).toString('hex')}`);
     if (this.recv.length < len + 3) return;
-    const recv = this.recv.slice(3, len + 3);
+    let recv = this.recv.slice(3, len + 3);
     this.recv = this.recv.slice(len + 3);
-
-    this.emit('data', recv);
+    if (this.handShake.isLogin) {
+      try {
+        recv = this.decrypt(recv);
+        const decoder = new Decoder();
+        const node = await decoder.getProtocolTreeNode(recv);
+        if (node && node.tag) {
+          this.emit('node', node);
+        }
+        const str = node.toString();
+        console.info('recv ==>', str);
+      } catch (e) {
+        console.error('解包失败', e, Buffer.from(recv).toString('hex'));
+      }
+    } else {
+      this.emit('data', recv);
+    }
     this.len = 0;
     this.parseData();
   }
 
-  generateHeader(num, len = 6) {
-    let str = Number(num).toString(16);
-    str = new Array(len - str.length + 1).join('0') + str;
-    return Buffer.from(str, 'hex');
+  async sendNode(node) {
+    console.info('send ==>', node.toString());
+    this.send(node.toBuffer());
+  }
+
+  toBuffer(plaintext) {
+    if (typeof plaintext === 'undefined') return Buffer.alloc(0);
+    return typeof plaintext === 'string'
+      ? Buffer.from(plaintext, 'base64')
+      : Buffer.from(plaintext);
+  }
+
+  decrypt(message) {
+    return this.handShake.recvCipherState.decryptAES256GCM(Buffer.alloc(0), this.toBuffer(message));
+  }
+
+  encrypt(message) {
+    return this.handShake.sendCipherState.encryptAES256GCM(Buffer.alloc(0), this.toBuffer(message));
   }
 
   write(buffer) {
     if (this.destroyed) return;
     this.socket.write(buffer);
-  }
-
-  async sendEncrypt(message) {
-    // TODO
-    this.emit('sendencryptmessage', message);
   }
 
   async send(message, header = true) {
@@ -148,20 +182,30 @@ class WASocketClient extends EventEmitter {
       } else {
         buffer = Buffer.from(message);
       }
+      if (this.isLogin) {
+        buffer = this.encrypt(buffer);
+      }
       if (header) this.write(this.generateHeader(buffer.length));
       this.write(buffer);
     } catch (e) {
-      this.logger.error('发送数据失败', e);
+      this.console.error('发送数据失败', e);
     }
   }
 
-  async login() {
-    if (this.loginStatus === '登陆中') return;
-    if (this.loginStatus === '已登陆') return;
-    const handShake = new HandShake(this);
-    await handShake.login();
-    // 登陆成功
-    this.emit('login');
+  pause() {
+    console.log('wa socket pause.');
+    this.socket.pause();
+  }
+
+  resume() {
+    console.log('wa socket resume.');
+    this.socket.resume();
+  }
+
+  generateHeader(num, len = 6) {
+    let str = Number(num).toString(16);
+    str = new Array(len - str.length + 1).join('0') + str;
+    return Buffer.from(str, 'hex');
   }
 }
 

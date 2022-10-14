@@ -4,7 +4,11 @@ class ProtocolTreeNode {
   constructor(tag, attributes = null, children = null, data = null) {
     this.tag = tag;
     this.attributes = attributes || {};
-    this.children = children || [];
+    if (children && !Array.isArray(children)) {
+      this.children = [children];
+    } else {
+      this.children = children || [];
+    }
     this.data = data;
     Object.keys(this.attributes).forEach(key => {
       if (this.attributes[key] === undefined || this.attributes[key] === null) {

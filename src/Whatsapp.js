@@ -12,11 +12,11 @@ class Whatsapp {
     Object.assign(config, opts);
 
     this.id = 0;
+    this.isLogin = false;
   }
 
   async sendNode(node) {
-    console.info('send ==>', node.toString());
-    this.waSocketClient.sendEncrypt(node.toBuffer());
+    this.waSocketClient.sendNode(node);
   }
 
   async sendPing() {
@@ -44,15 +44,23 @@ class Whatsapp {
     const { mobile, cc, mnc, mcc, proxy } = opts;
     const account = await db.findAccount(mobile);
     if (!account) throw new Error('账户不存在');
-    this.socketName = await this.socketManager.initWASocket(opts, account, this);
+    this.socketName = await this.socketManager.initWASocket(opts, account);
     this.waSocketClient = this.socketManager.getWASocketClient(this.socketName);
     this.waSocketClient.on('node', node => {
       if (node && node.tag) {
         const tag = node.tag;
         const eventName = `on${String(tag[0]).toUpperCase()}${tag.substr(1)}`;
         if (typeof this[eventName] === 'function') this[eventName](node);
-        if (tag === 'success') this.waSocketClient.emit('success', node);
-        if (tag === 'failure') this.waSocketClient.emit('failure', node);
+        // 特殊包特殊处理
+        if (['success', 'failure'].includes(tag)) {
+          this.waSocketClient.emit(tag, node);
+        }
+      }
+    });
+    this.waSocketClient.on('destroy', () => {
+      if (this.pingTimer) {
+        clearTimeout(this.pingTimer);
+        this.pingTimer = null;
       }
     });
   }
@@ -60,19 +68,19 @@ class Whatsapp {
   async login() {
     try {
       await new Promise((resolve, reject) => {
-        this.socketManager.startLogin(this.socketName);
-        this.waSocketClient
-          .once('success', () => {
-            console.log('login success.');
-            this.sendPing();
-            resolve();
-          })
-          .once('failure', node => {
-            const str = node.toString();
-            console.log('login failed.', str);
-            reject(new Error(str));
-          });
+        this.waSocketClient.login();
+        this.waSocketClient.once('success', () => {
+          console.log('Login success.');
+          this.sendPing();
+          resolve();
+        });
+        this.waSocketClient.once('failure', node => {
+          const str = node.toString();
+          console.log('Login failed.', str);
+          reject(new Error(str));
+        });
       });
+      this.isLogin = true;
       return { status: 'success' };
     } catch (e) {
       return { status: 'failed', msg: e.message };

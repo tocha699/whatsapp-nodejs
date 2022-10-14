@@ -4,7 +4,6 @@ const SocketClient = require('./SocketClient');
 const db = require('./db');
 const WASocketClient = require('./WASocketClient');
 const config = require('./config');
-const HandShake = require('./protocol/HandShake');
 
 class SocketManager {
   constructor() {
@@ -12,7 +11,6 @@ class SocketManager {
 
     this.sockets = {}; // 客户端 socket
     this.wasockets = {}; // whatsapp 服务器 socket
-    this.wa = {}; // whatsapp 实例
 
     // 缓存 uid aeskey
     this.uidObject = {};
@@ -45,11 +43,10 @@ class SocketManager {
     this.server = server;
   }
 
-  async initWASocket(opts, account, whatsapp) {
+  async initWASocket(opts, account) {
     this.id++;
     const { mobile, cc, mnc, mcc, proxy } = opts;
     const socketName = `Socket_${this.id}`;
-    // const waSocketClient = new WASocketClient({ socketName });
 
     const waSocketClient = new WASocketClient(
       {
@@ -57,10 +54,13 @@ class SocketManager {
         socketName,
         endpoint: config.getEndPoint(),
         account,
-        whatsapp,
       },
       this
     );
+
+    waSocketClient.on('destroy', name => {
+      this.destroy(name);
+    });
 
     this.wasockets[socketName] = waSocketClient;
     return socketName;
@@ -68,14 +68,6 @@ class SocketManager {
 
   getWASocketClient(socketName) {
     return this.wasockets[socketName];
-  }
-
-  async startLogin(socketName) {
-    const waSocketClient = this.wasockets[socketName];
-    const { account } = waSocketClient;
-    await waSocketClient.init();
-    const handShake = new HandShake(waSocketClient);
-    await handShake.start(account, account.serverStaticPublic);
   }
 
   async addSocketClient(socket) {
@@ -99,18 +91,8 @@ class SocketManager {
     this.wa[socketName] = whatsapp;
   }
 
-  async addWASocketClient(socketName) {
-    const socketClient = new WASocketClient({ socketName }, this);
-    await socketClient.init();
-    this.wasockets[socketName] = socketClient;
-  }
-
   async destroy(socketName) {
-    if (!this.wa[socketName]) return;
-
-    if (this.wa[socketName]) this.wa[socketName].destroy();
-    this.wa[socketName] = null;
-
+    console.info('destroy sockets', socketName);
     if (this.sockets[socketName]) this.sockets[socketName].destroy();
     this.sockets[socketName] = null;
 
