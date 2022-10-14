@@ -40,6 +40,7 @@ class CipherState {
     if (!this.key.length) return ciphertext;
     const result = crypto.decryptAES256GCM(ciphertext, this.key, ad, this.nonce);
     this.nonce++;
+
     return result;
   }
 }

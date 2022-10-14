@@ -31,12 +31,15 @@ class HandShake {
 
     this.waSocketClient.on('data', async data => {
       if (!this.isHandShake) return;
-      console.log('data', data);
-      const buffer = this.decrypt(data);
-      const decoder = new Decoder();
-      const node = await decoder.getProtocolTreeNode(buffer);
-      const str = node.toString(); // .substr(0, 1000);
-      console.info('收包<---', str);
+      try {
+        const buffer = this.decrypt(data);
+        const decoder = new Decoder();
+        const node = await decoder.getProtocolTreeNode(buffer);
+        const str = node.toString(); // .substr(0, 1000);
+        console.info('收包<---', str);
+      } catch (e) {
+        console.error('解包失败', e);
+      }
     });
   }
 
@@ -156,6 +159,7 @@ class HandShake {
 
     return new Promise((resolve, reject) => {
       this.waSocketClient.once('data', async buffer => {
+        this.isHandShake = true;
         const { serverHello } = HandshakeMessage.HandshakeMessage.decode(buffer).toJSON();
         console.debug('serverHello', serverHello);
         if (serverHello.static && serverHello.static.length) {

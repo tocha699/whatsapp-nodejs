@@ -59,7 +59,6 @@ class WASymmetricState {
 
   mix_key(input_key_material) {
     const output = crypto.hkdf(this._ck, this.toBuffer(input_key_material), 2);
-    // console.log('mix_key', input_key_material, this._ck, Buffer.from(output[0], 'base64'));
     this._ck = Buffer.from(output[0], 'base64');
     const temp_k = Buffer.from(output[1], 'base64');
 

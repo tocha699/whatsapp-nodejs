@@ -13,8 +13,8 @@ const main = async () => {
   const waSocketClient = new WASocketClient({
     proxy: {
       host: '127.0.0.1',
-      port: 1087,
-      type: 'http',
+      port: 1086,
+      type: 'socks5',
     },
     mobile: '233244040964',
     socketName: 'Socket_1',
