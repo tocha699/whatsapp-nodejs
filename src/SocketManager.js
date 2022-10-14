@@ -5,7 +5,6 @@ const db = require('./db');
 const WASocketClient = require('./WASocketClient');
 const config = require('./config');
 const HandShake = require('./protocol/HandShake');
-const libsignal = require('./lib/libsignal-protocol');
 
 class SocketManager {
   constructor() {
@@ -29,9 +28,6 @@ class SocketManager {
   }
 
   async initServer(port) {
-    libsignal.curve = (await libsignal.default()).Curve;
-    await db.init();
-
     const server = net.createServer(socket => {
       this.addSocketClient(socket);
     });

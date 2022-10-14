@@ -1,8 +1,9 @@
 const SocketManager = require('./SocketManager');
-const logger = require('./logger');
+const initBeforeStart = require('./initBeforeStart');
 
 module.exports = {
-  init(opts = {}) {
+  async init(opts = {}) {
+    await initBeforeStart();
     const { port = 9002 } = opts;
     const socketManager = new SocketManager();
     socketManager.initServer(port);

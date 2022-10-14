@@ -1,10 +1,9 @@
 const SocketManager = require('./SocketManager');
-const logger = require('./logger');
 const db = require('./db');
-const libsignal = require('./lib/libsignal-protocol');
 const ProtocolTreeNode = require('./packet/ProtocolTreeNode');
 const utils = require('./lib/utils');
 const config = require('./config');
+const initBeforeStart = require('./initBeforeStart');
 
 class Whatsapp {
   constructor(opts = {}) {
@@ -40,10 +39,9 @@ class Whatsapp {
   }
 
   async init(opts) {
-    libsignal.curve = (await libsignal.default()).Curve;
+    await initBeforeStart();
 
     const { mobile, cc, mnc, mcc, proxy } = opts;
-    await db.init();
     const account = await db.findAccount(mobile);
     if (!account) throw new Error('账户不存在');
     this.socketName = await this.socketManager.initWASocket(opts, account, this);
