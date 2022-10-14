@@ -3,11 +3,11 @@ const WASymmetricState = require('./WASymmetricState');
 const HandshakeState = require('./HandshakeState');
 const SwitchableHandshakeState = require('./SwitchableHandshakeState');
 const IKHandshakePattern = require('./handshakepatterns/IKHandshakePattern');
-const { ClientHello, HandshakeMessage } = require('../protobuf/pb');
 const FallbackPatternModifier = require('./FallbackPatternModifier');
-
 const XXHandshakePattern = require('./handshakepatterns/XXHandshakePattern');
+
 const Decoder = require('../bin/decoder');
+const { ClientHello, HandshakeMessage } = require('../protobuf/pb');
 
 class HandShake {
   constructor(waSocketClient) {
@@ -29,18 +29,26 @@ class HandShake {
 
     this.isHandShake = false;
 
-    this.waSocketClient.on('data', async data => {
-      if (!this.isHandShake) return;
-      try {
-        const buffer = this.decrypt(data);
-        const decoder = new Decoder();
-        const node = await decoder.getProtocolTreeNode(buffer);
-        const str = node.toString(); // .substr(0, 1000);
-        console.info('收包<---', str);
-      } catch (e) {
-        console.error('解包失败', e);
-      }
-    });
+    this.waSocketClient
+      .on('data', async data => {
+        if (!this.isHandShake) return;
+        try {
+          const buffer = this.decrypt(data);
+          const decoder = new Decoder();
+          const node = await decoder.getProtocolTreeNode(buffer);
+          if (node && node.tag) {
+            this.waSocketClient.emit('node', node);
+          }
+          const str = node.toString();
+          console.info('recv ==>', str);
+        } catch (e) {
+          console.error('解包失败', e);
+        }
+      })
+      // TODO
+      .on('sendencryptmessage', async data => {
+        this.waSocketClient.send(this.encrypt(data), true);
+      });
   }
 
   toBuffer(plaintext) {
@@ -52,6 +60,10 @@ class HandShake {
 
   decrypt(message) {
     return this.recvCipherState.decryptAES256GCM(Buffer.alloc(0), this.toBuffer(message));
+  }
+
+  encrypt(message) {
+    return this.sendCipherState.encryptAES256GCM(Buffer.alloc(0), this.toBuffer(message));
   }
 
   async start(config, serverStaticPublic) {

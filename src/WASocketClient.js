@@ -1,8 +1,5 @@
 const net = require('net');
 const EventEmitter = require('events');
-// const utils = require('./common/utils');
-// const Decoder = require('./protocol/decoder');
-// const constants = require('./config/constants');
 const SocketProxy = require('./lib/SocketProxy');
 const HandShake = require('./protocol/HandShake');
 
@@ -12,11 +9,12 @@ class WASocketClient extends EventEmitter {
 
     this.opts = opts;
 
-    const { proxy, mobile, socketName, endpoint, account } = opts;
+    const { proxy, mobile, socketName, endpoint, account, whatsapp } = opts;
 
     this.mobile = mobile;
     this.socketName = socketName;
     this.account = account;
+    this.whatsapp = whatsapp;
 
     const { port, host } = endpoint;
     this.port = port;
@@ -137,6 +135,11 @@ class WASocketClient extends EventEmitter {
   write(buffer) {
     if (this.destroyed) return;
     this.socket.write(buffer);
+  }
+
+  async sendEncrypt(message) {
+    // TODO
+    this.emit('sendencryptmessage', message);
   }
 
   async send(message, header = true) {

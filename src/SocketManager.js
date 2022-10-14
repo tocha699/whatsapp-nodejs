@@ -49,7 +49,7 @@ class SocketManager {
     this.server = server;
   }
 
-  async initWASocket(opts, account) {
+  async initWASocket(opts, account, whatsapp) {
     this.id++;
     const { mobile, cc, mnc, mcc, proxy } = opts;
     const socketName = `Socket_${this.id}`;
@@ -61,12 +61,17 @@ class SocketManager {
         socketName,
         endpoint: config.getEndPoint(),
         account,
+        whatsapp,
       },
       this
     );
 
     this.wasockets[socketName] = waSocketClient;
     return socketName;
+  }
+
+  getWASocketClient(socketName) {
+    return this.wasockets[socketName];
   }
 
   async startLogin(socketName) {

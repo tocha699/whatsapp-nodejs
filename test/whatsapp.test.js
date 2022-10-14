@@ -10,7 +10,8 @@ const main = async () => {
     },
   });
 
-  await whatsapp.login();
+  const res = await whatsapp.login();
+  console.log('res', res);
 };
 
 main();

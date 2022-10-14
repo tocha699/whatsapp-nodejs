@@ -19,7 +19,6 @@ class ProtocolTreeNode {
   toBuffer() {
     try {
       const bytes = new WriteEncoder().protocolTreeNodeToBytes(this);
-      // console.log('bytes', this.tag, this.attributes, Buffer.from(bytes).toString('hex'));
       return Buffer.from(bytes);
     } catch (e) {
       console.error(`Node 序列化 buffer 失败`, e);
