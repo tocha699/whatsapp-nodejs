@@ -26,13 +26,22 @@ TODO:
 
 ### 使用
 
-更多示例请参考 `test/whatsapp.test.js`
+
+安装
+
+```
+npm install whatsapp-nodejs
+```
+
+使用示例
 
 ``` javascript
-const Whatsapp = require('./src/whatsapp');
+const { Whatsapp } = require('whatsapp-nodejs');
 
 const main = async()=>{
-  const whatsapp = new Whatsapp();
+  const whatsapp = new Whatsapp({
+    mongodb: 'mongodb://localhost:27017/whatsapp',
+  });
   await whatsapp.init({
     mobile: '',
     cc:'',
@@ -51,3 +60,5 @@ main();
 
 
 ```
+
+更多示例请参考 `test/whatsapp.test.js`

@@ -4,10 +4,13 @@ const db = require('./db');
 const libsignal = require('./lib/libsignal-protocol');
 const ProtocolTreeNode = require('./packet/ProtocolTreeNode');
 const utils = require('./lib/utils');
+const config = require('./config');
 
 class Whatsapp {
-  constructor() {
+  constructor(opts = {}) {
     this.socketManager = new SocketManager();
+
+    Object.assign(config, opts);
 
     this.id = 0;
   }
