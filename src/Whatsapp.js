@@ -1,6 +1,6 @@
 const SocketManager = require('./SocketManager');
-const db = require('./db');
 const logger = require('./logger');
+const db = require('./db');
 const libsignal = require('./lib/libsignal-protocol');
 const ProtocolTreeNode = require('./packet/ProtocolTreeNode');
 const utils = require('./lib/utils');

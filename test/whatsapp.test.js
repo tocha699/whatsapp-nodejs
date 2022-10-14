@@ -1,4 +1,4 @@
-const Whatsapp = require('../src/whatsapp');
+const { Whatsapp, WhatsappServer } = require('../src/index');
 
 const main = async () => {
   const whatsapp = new Whatsapp();
@@ -12,6 +12,8 @@ const main = async () => {
 
   const res = await whatsapp.login();
   console.log('res', res);
+
+  // WhatsappServer.init(9002);
 };
 
 main();

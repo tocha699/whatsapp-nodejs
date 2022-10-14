@@ -1,7 +1,7 @@
 {
-  "name": "whatsapp",
+  "name": "whatsapp-nodejs",
   "version": "0.0.1",
-  "description": "",
+  "description": "This is a library based on whatsapp androd latest version, you can use it build your own app.",
   "main": "src/index.js",
   "directories": {
     "doc": "docs"
@@ -35,8 +35,13 @@
     "rpc": "egg-rpc-generator",
     "init": "npm run rpc"
   },
-  "keywords": [],
-  "author": "",
+  "engines": {
+    "node": ">=16.11.0"
+  },
+  "keywords": [
+    "whatsapp"
+  ],
+  "author": "yisbug@gmail.com",
   "dependencies": {
     "@privacyresearch/libsignal-protocol-typescript": "0.0.9",
     "bunyan": "^1.8.15",
