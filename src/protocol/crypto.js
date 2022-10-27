@@ -3,11 +3,16 @@ const curve = require('curve25519-n');
 const PKCS7 = require('./PKCS7');
 
 module.exports = {
+  randomBytes(len) {
+    return crypto.randomBytes(len);
+  },
+
   toBuffer(plaintext) {
     return typeof plaintext === 'string'
       ? Buffer.from(plaintext, 'base64')
       : Buffer.from(plaintext);
   },
+
   generateHeader(num, len = 6) {
     let str = Number(num).toString(16);
     str = new Array(len - str.length + 1).join('0') + str;
@@ -26,6 +31,7 @@ module.exports = {
       .update(message)
       .digest(encode);
   },
+
   hmacHash(key, message, type = 'sha256', encode = 'base64') {
     const hmac = crypto.createHmac(type, this.toBuffer(key));
     hmac.update(this.toBuffer(message));
@@ -62,6 +68,24 @@ module.exports = {
     if (encode) return Buffer.concat(outputs).toString(encode);
     return Buffer.concat(outputs);
   },
+
+  decryptAES256GCM(params, key, aad, iiv = 0, encode = '') {
+    const keyBuffer = typeof key === 'string' ? Buffer.from(key, 'base64') : key;
+    const iv = typeof iiv === 'object' ? iiv : this.generateHeader(iiv, 24);
+    const paramsBuffer = typeof params === 'string' ? Buffer.from(params, 'base64') : params;
+    const authTag = paramsBuffer.slice(-16);
+    const dataBuffer = paramsBuffer.slice(0, -16);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuffer, iv);
+    decipher.setAuthTag(authTag);
+    if (aad) decipher.setAAD(typeof aad === 'string' ? Buffer.from(aad, 'base64') : aad);
+    const outputs = [];
+    outputs.push(decipher.update(dataBuffer));
+    outputs.push(decipher.final());
+
+    if (encode) return Buffer.concat(outputs).toString(encode);
+    return Buffer.concat(outputs);
+  },
+
   encryptAES256CBC(key, iiv = 0, params, encode = '') {
     const keyBuffer = typeof key === 'string' ? Buffer.from(key, 'base64') : key;
     const iv = typeof iiv === 'object' ? iiv : this.generateHeader(iiv, 24);
@@ -79,6 +103,7 @@ module.exports = {
     const encrypted = Buffer.concat(outputs);
     return encrypted;
   },
+
   decryptAES256CBC(key, iiv = 0, params, encode = '') {
     const keyBuffer = typeof key === 'string' ? Buffer.from(key, 'base64') : key;
     const iv = typeof iiv === 'object' ? iiv : this.generateHeader(iiv, 24);
@@ -92,21 +117,5 @@ module.exports = {
     const decrypted = Buffer.concat(outputs);
     const unpadder = new PKCS7(128).unpadder();
     return Buffer.concat([unpadder.update(decrypted), unpadder.finalize()]);
-  },
-  decryptAES256GCM(params, key, aad, iiv = 0, encode = '') {
-    const keyBuffer = typeof key === 'string' ? Buffer.from(key, 'base64') : key;
-    const iv = typeof iiv === 'object' ? iiv : this.generateHeader(iiv, 24);
-    const paramsBuffer = typeof params === 'string' ? Buffer.from(params, 'base64') : params;
-    const authTag = paramsBuffer.slice(-16);
-    const dataBuffer = paramsBuffer.slice(0, -16);
-    const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuffer, iv);
-    decipher.setAuthTag(authTag);
-    if (aad) decipher.setAAD(typeof aad === 'string' ? Buffer.from(aad, 'base64') : aad);
-    const outputs = [];
-    outputs.push(decipher.update(dataBuffer));
-    outputs.push(decipher.final());
-
-    if (encode) return Buffer.concat(outputs).toString(encode);
-    return Buffer.concat(outputs);
   },
 };
