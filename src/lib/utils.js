@@ -1,13 +1,26 @@
 const { v4 } = require('uuid');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const tunnel = require('tunnel');
-
-const uuidv4 = v4;
 const crypto = require('crypto');
+
+const firstname = require('./data/firstname');
+const lastname = require('./data/lastname');
+
+const firstnameLen = firstname.length;
+const lastnameLen = lastname.length;
+const uuidv4 = v4;
 const libsignal = require('./libsignal-protocol');
 
 module.exports = {
   KEY_SIZE: 32,
+
+  // 随机生成英文名
+  generatePushName() {
+    let name = firstname[this.random(0, firstnameLen - 1)];
+    name += ' ';
+    name += lastname[this.random(0, lastnameLen - 1)];
+    return name;
+  },
   fillZero(str, len) {
     if (len && str.length < len) {
       str = new Array(len - str.length + 1).join('0') + str;
