@@ -7,7 +7,7 @@ module.exports = {
   async initAccount(opts) {
     const { mobile, cc, mnc, mcc } = opts;
     let account = await db.account.findOne({ mobile });
-    // if (account) return account;
+    if (account) return account;
 
     let ccConfig = { cc, mnc, mcc, country: '', brand: '' };
     if (!cc || !mnc || mcc) {
@@ -48,5 +48,9 @@ module.exports = {
       new: true,
     });
     return account;
+  },
+
+  async updateAccount(mobile, payload) {
+    await db.account.findOneAndUpdate({ mobile }, payload);
   },
 };

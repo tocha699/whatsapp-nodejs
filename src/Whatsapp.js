@@ -45,9 +45,6 @@ class Whatsapp {
   async sms() {
     const account = await accountStore.initAccount(this.opts);
 
-    // 重新注册，更换设备
-    // this.env.generateUA();
-
     const request = new WARequest(this.signal, config, account);
     await request.init();
     if (this.proxy) request.setProxy(this.proxy);
@@ -74,7 +71,6 @@ class Whatsapp {
         .slice(0, 15)
         .toString('base64')
     );
-    // request.addParam("id", config.id)
     let response;
     try {
       response = await request.get();
@@ -84,16 +80,64 @@ class Whatsapp {
       console.log(e.stack);
       throw new Error(e);
     }
-    // if (response.status === 'ok' || response.status === 'sent') {
-    //   await this.env.save(this.phone);
+    if (response.status === 'ok' || response.status === 'sent') {
+      return { status: 'success', data: response };
+    }
+    return { status: 'error', data: response };
+  }
+
+  // 使用验证码注册
+  async register(params) {
+    const account = await accountStore.initAccount(this.opts);
+
+    const { code } = params;
+    const request = new WARequest(this.signal, config, account);
+    await request.init();
+    if (this.proxy) request.setProxy(this.proxy);
+    request.url = 'https://v.whatsapp.net/v2/register?ENC=';
+
+    request.addParam('client_metrics', '{"attempts"%3A1}');
+    request.addParam('entered', '1');
+    request.addParam('sim_operator_name', '');
+    request.addParam('id', Buffer.from(account.id, 'base64'));
+    request.addParam(
+      'backup_token',
+      Buffer.from(account.id, 'base64')
+        .slice(0, 15)
+        .toString('base64')
+    );
+    request.addParam(
+      'code',
+      String(code)
+        .trim()
+        .replace('-', '')
+    );
+    let response;
+    try {
+      response = await request.get();
+      console.info('通过验证码注册===>', response);
+    } catch (e) {
+      console.error(`通过验证码注册失败`, e);
+      throw new Error(e);
+    }
+    // {
+    //   autoconf_type: 1,
+    //   login: '34611093620',
+    //   security_code_set: false,
+    //   status: 'ok',
+    //   type: 'new'
     // }
-    return response || { status: 'error' };
+    if (response.status === 'ok') {
+      return { status: 'success', data: response };
+    }
+    return { status: 'error', data: response };
   }
 
   async login() {
     try {
       const account = await db.findAccount(this.mobile);
       if (!account) throw new Error('账户不存在');
+      account.version = config.version;
       this.socketName = await this.socketManager.initWASocket(this.opts, account);
       this.waSocketClient = this.socketManager.getWASocketClient(this.socketName);
       this.waSocketClient.on('node', node => {
