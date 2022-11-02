@@ -27,10 +27,20 @@ requires:
 - nodejs >= 14.11.0
 - mongodb >= 4.0.28
 
-You can use npm or yarn to install:
+~~You can use npm or yarn to install:~~
 
+```shell
+#npm install whatsapp-nodejs
 ```
-npm install whatsapp-nodejs
+
+由于某些原因，这个库被 npm 仓库移除了，所以只能把代码 cloen 到本地，然后使用 npm link 命令来使用。
+
+```shell
+git clone git@github.com:yisbug/whatsapp-nodejs.git
+cd whatsapp-nodejs
+npm install
+cd ../your project
+npm link ../whatsapp-nodejs
 ```
 
 #### Get SMS

@@ -1,6 +1,6 @@
 {
   "name": "whatsapp-nodejs",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "This is a library based on whatsapp androd latest version, you can use it build your own app.",
   "main": "src/index.js",
   "directories": {
