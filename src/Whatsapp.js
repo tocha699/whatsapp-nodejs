@@ -4,6 +4,8 @@ const ProtocolTreeNode = require('./packet/ProtocolTreeNode');
 const utils = require('./lib/utils');
 const config = require('./config');
 const initBeforeStart = require('./initBeforeStart');
+const WARequest = require('./lib/WARequest');
+const accountStore = require('./store/account');
 
 class Whatsapp {
   constructor(opts = {}) {
@@ -63,6 +65,59 @@ class Whatsapp {
         this.pingTimer = null;
       }
     });
+  }
+
+  // 获取短信验证码
+  async sms(params) {
+    const { mobile, cc, mnc, mcc, proxy } = params;
+    if (!mobile) throw new Error('mobile is required.');
+
+    const account = await accountStore.initAccount(params);
+
+    // 重新注册，更换设备
+    // this.env.generateUA();
+
+    const request = new WARequest(this.config, this.manager, this.env);
+    await request.init();
+    if (this.proxy) request.setProxy(this.proxy);
+    request.url = 'https://v.whatsapp.net/v2/code?ENC=';
+    // const config = this.config.getConfig();
+    request.addParam('client_metrics', '{"attempts"%3A1}');
+    request.addParam('read_phone_permission_granted', '1');
+    request.addParam('offline_ab', '{"exposure"%3A[]%2C"metrics"%3A{}}');
+    request.addParam('network_operator_name', '');
+    request.addParam('sim_operator_name', '');
+    request.addParam('sim_state', '1');
+
+    request.addParam('mcc', utils.fillZero(config.mcc, 3));
+    request.addParam('mnc', utils.fillZero(config.mnc, 3));
+    request.addParam('sim_mcc', utils.fillZero(config.sim_mcc, 3));
+    request.addParam('sim_mnc', utils.fillZero(config.sim_mnc, 3));
+    request.addParam('method', 'sms');
+    request.addParam('reason', '');
+    request.addParam('token', this.env.getToken(request._p_in));
+    request.addParam('hasav', '2');
+    request.addParam('id', Buffer.from(config.id, 'base64'));
+    request.addParam(
+      'backup_token',
+      Buffer.from(config.id, 'base64')
+        .slice(0, 15)
+        .toString('base64')
+    );
+    // request.addParam("id", config.id)
+    let response;
+    try {
+      response = await request.get();
+      console.info('获取短信验证码===>', response);
+    } catch (e) {
+      console.info(`获取短信验证码失败：${e.message}`);
+      console.log(e.stack);
+      throw new Error(e);
+    }
+    if (response.status === 'ok' || response.status === 'sent') {
+      await this.env.save(this.phone);
+    }
+    return response || { status: 'error' };
   }
 
   async login() {

@@ -1,7 +1,7 @@
 const EventEmitter = require('events');
 const SocketClientProxy = require('./lib/SocketClientProxy');
-const HandShake = require('./bin/HandShake');
-const Decoder = require('./bin/decoder');
+const HandShake = require('./protocol/handshake');
+const Decoder = require('./protocol/decoder');
 
 class WASocketClient extends EventEmitter {
   constructor(opts, socketManager) {

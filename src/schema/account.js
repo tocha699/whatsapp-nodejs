@@ -6,6 +6,7 @@ module.exports = {
   mobile: {
     type: String,
     index: true,
+    uniqe: true,
   },
   cc: {
     type: String,
