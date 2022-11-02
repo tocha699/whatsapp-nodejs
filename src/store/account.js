@@ -1,12 +1,13 @@
 const utils = require('../lib/utils');
 const db = require('../db');
 const { getMncByMobile } = require('../lib/mnc');
+const { generateUA } = require('../lib/ua');
 
 module.exports = {
   async initAccount(opts) {
     const { mobile, cc, mnc, mcc } = opts;
     let account = await db.account.findOne({ mobile });
-    if (account) return account;
+    // if (account) return account;
 
     let ccConfig = { cc, mnc, mcc, country: '', brand: '' };
     if (!cc || !mnc || mcc) {
@@ -32,9 +33,17 @@ module.exports = {
 
       sim_mcc: '000',
       sim_mnc: '000',
+      // {
+      //   osName: 'Android',
+      //   oSVersion: '7.0',
+      //   deviceName: 'SM-G9350',
+      //   manufacturer: 'samsung',
+      //   buildVersion: 'samsung hero2qltezc hero2qltechn 7.0 NRD90M G9350ZCU2BRD1  release-keys'
+      // }
+      ...generateUA(),
     };
 
-    account = await db.account.model.findOneAndUpdate({ mobile }, data, {
+    account = await db.account.findOneAndUpdate({ mobile }, data, {
       upsert: true,
       new: true,
     });

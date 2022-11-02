@@ -13,7 +13,10 @@ const libsignal = require('./libsignal');
 
 module.exports = {
   KEY_SIZE: 32,
-
+  random(start, end) {
+    const rnd = Math.round(Math.random() * (end - start));
+    return rnd + start;
+  },
   // 随机生成英文名
   generatePushName() {
     let name = firstname[this.random(0, firstnameLen - 1)];

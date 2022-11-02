@@ -1,11 +1,13 @@
+const initBeforeStart = require('./initBeforeStart');
+const utils = require('./lib/utils');
+const WARequest = require('./lib/WARequest');
+
 const SocketManager = require('./SocketManager');
 const db = require('./db');
 const ProtocolTreeNode = require('./packet/ProtocolTreeNode');
-const utils = require('./lib/utils');
 const config = require('./config');
-const initBeforeStart = require('./initBeforeStart');
-const WARequest = require('./lib/WARequest');
 const accountStore = require('./store/account');
+const Signal = require('./protocol/signal');
 
 class Whatsapp {
   constructor(opts = {}) {
@@ -15,73 +17,41 @@ class Whatsapp {
 
     this.id = 0;
     this.isLogin = false;
-  }
-
-  async sendNode(node) {
-    this.waSocketClient.sendNode(node);
-  }
-
-  async sendPing() {
-    //  <iq id="02" type="get" xmlns="w:p"><ping></ping></iq>
-    this.pingTimer = setTimeout(() => {
-      this.id++;
-      const node = new ProtocolTreeNode(
-        'iq',
-        {
-          type: 'get',
-          xmlns: 'w:p',
-          id: utils.generateId(this.id || 0),
-        },
-        [new ProtocolTreeNode('ping')]
-      );
-      this.sendNode(node);
-
-      this.sendPing();
-    }, 1000 * 20 + 1000 * Math.random() * 10);
+    this.mobile = '';
+    this.cc = '';
+    this.mnc = '';
+    this.mcc = '';
+    this.proxy = '';
   }
 
   async init(opts) {
     await initBeforeStart();
 
     const { mobile, cc, mnc, mcc, proxy } = opts;
-    const account = await db.findAccount(mobile);
-    if (!account) throw new Error('账户不存在');
-    this.socketName = await this.socketManager.initWASocket(opts, account);
-    this.waSocketClient = this.socketManager.getWASocketClient(this.socketName);
-    this.waSocketClient.on('node', node => {
-      if (node && node.tag) {
-        const tag = node.tag;
-        const eventName = `on${String(tag[0]).toUpperCase()}${tag.substr(1)}`;
-        if (typeof this[eventName] === 'function') this[eventName](node);
-        // 特殊包特殊处理
-        if (['success', 'failure'].includes(tag)) {
-          this.waSocketClient.emit(tag, node);
-        }
-      }
-    });
-    this.waSocketClient.on('destroy', () => {
-      if (this.pingTimer) {
-        clearTimeout(this.pingTimer);
-        this.pingTimer = null;
-      }
-    });
+    this.opts = opts;
+
+    this.mobile = mobile;
+    this.proxy = proxy;
+    this.cc = cc;
+    this.mnc = mnc;
+    this.mcc = mcc;
+    this.proxy = proxy;
+
+    this.signal = new Signal(this.mobile);
+    await this.signal.init();
   }
 
   // 获取短信验证码
-  async sms(params) {
-    const { mobile, cc, mnc, mcc, proxy } = params;
-    if (!mobile) throw new Error('mobile is required.');
-
-    const account = await accountStore.initAccount(params);
+  async sms() {
+    const account = await accountStore.initAccount(this.opts);
 
     // 重新注册，更换设备
     // this.env.generateUA();
 
-    const request = new WARequest(this.config, this.manager, this.env);
+    const request = new WARequest(this.signal, config, account);
     await request.init();
     if (this.proxy) request.setProxy(this.proxy);
     request.url = 'https://v.whatsapp.net/v2/code?ENC=';
-    // const config = this.config.getConfig();
     request.addParam('client_metrics', '{"attempts"%3A1}');
     request.addParam('read_phone_permission_granted', '1');
     request.addParam('offline_ab', '{"exposure"%3A[]%2C"metrics"%3A{}}');
@@ -89,18 +59,18 @@ class Whatsapp {
     request.addParam('sim_operator_name', '');
     request.addParam('sim_state', '1');
 
-    request.addParam('mcc', utils.fillZero(config.mcc, 3));
-    request.addParam('mnc', utils.fillZero(config.mnc, 3));
-    request.addParam('sim_mcc', utils.fillZero(config.sim_mcc, 3));
-    request.addParam('sim_mnc', utils.fillZero(config.sim_mnc, 3));
+    request.addParam('mcc', utils.fillZero(account.mcc, 3));
+    request.addParam('mnc', utils.fillZero(account.mnc, 3));
+    request.addParam('sim_mcc', utils.fillZero(account.sim_mcc, 3));
+    request.addParam('sim_mnc', utils.fillZero(account.sim_mnc, 3));
     request.addParam('method', 'sms');
     request.addParam('reason', '');
-    request.addParam('token', this.env.getToken(request._p_in));
+    request.addParam('token', config.getToken(request._p_in));
     request.addParam('hasav', '2');
-    request.addParam('id', Buffer.from(config.id, 'base64'));
+    request.addParam('id', Buffer.from(account.id, 'base64'));
     request.addParam(
       'backup_token',
-      Buffer.from(config.id, 'base64')
+      Buffer.from(account.id, 'base64')
         .slice(0, 15)
         .toString('base64')
     );
@@ -114,14 +84,35 @@ class Whatsapp {
       console.log(e.stack);
       throw new Error(e);
     }
-    if (response.status === 'ok' || response.status === 'sent') {
-      await this.env.save(this.phone);
-    }
+    // if (response.status === 'ok' || response.status === 'sent') {
+    //   await this.env.save(this.phone);
+    // }
     return response || { status: 'error' };
   }
 
   async login() {
     try {
+      const account = await db.findAccount(this.mobile);
+      if (!account) throw new Error('账户不存在');
+      this.socketName = await this.socketManager.initWASocket(this.opts, account);
+      this.waSocketClient = this.socketManager.getWASocketClient(this.socketName);
+      this.waSocketClient.on('node', node => {
+        if (node && node.tag) {
+          const tag = node.tag;
+          const eventName = `on${String(tag[0]).toUpperCase()}${tag.substr(1)}`;
+          if (typeof this[eventName] === 'function') this[eventName](node);
+          // 特殊包特殊处理
+          if (['success', 'failure'].includes(tag)) {
+            this.waSocketClient.emit(tag, node);
+          }
+        }
+      });
+      this.waSocketClient.on('destroy', () => {
+        if (this.pingTimer) {
+          clearTimeout(this.pingTimer);
+          this.pingTimer = null;
+        }
+      });
       await new Promise((resolve, reject) => {
         this.waSocketClient.login();
         this.waSocketClient.once('success', () => {
@@ -219,6 +210,25 @@ class Whatsapp {
     );
   }
 
+  async sendPing() {
+    //  <iq id="02" type="get" xmlns="w:p"><ping></ping></iq>
+    this.pingTimer = setTimeout(() => {
+      this.id++;
+      const node = new ProtocolTreeNode(
+        'iq',
+        {
+          type: 'get',
+          xmlns: 'w:p',
+          id: utils.generateId(this.id || 0),
+        },
+        [new ProtocolTreeNode('ping')]
+      );
+      this.sendNode(node);
+
+      this.sendPing();
+    }, 1000 * 20 + 1000 * Math.random() * 10);
+  }
+
   async sendAck(attrs) {
     const node = new ProtocolTreeNode('ack', attrs);
     this.sendNode(node);
@@ -227,6 +237,10 @@ class Whatsapp {
   async sendReceipt(attrs) {
     const node = new ProtocolTreeNode('receipt', attrs);
     this.sendNode(node);
+  }
+
+  async sendNode(node) {
+    this.waSocketClient.sendNode(node);
   }
 }
 

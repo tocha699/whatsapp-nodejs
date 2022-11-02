@@ -1,4 +1,5 @@
 const globalConfig = require('/etc/whatsapp.json');
+const crypto = require('crypto');
 
 module.exports = {
   version: '2.22.21.71', // 最新安卓版本
@@ -65,6 +66,28 @@ module.exports = {
       host: endpoint[0],
       port: 5222,
     };
+  },
+  getToken(phoneNumber) {
+    const keyDecoded = Buffer.from(this.key, 'base64');
+    const sigDecoded = Buffer.from(this.signature, 'base64');
+    const clsDecoded = Buffer.from(this.md5Class, 'base64');
+    const data = Buffer.concat([sigDecoded, clsDecoded, Buffer.from(phoneNumber)]);
+    const opad = Buffer.alloc(64);
+    const ipad = Buffer.alloc(64);
+    for (let i = 0; i < 64; i++) {
+      opad[i] = 0x5c ^ keyDecoded[i];
+      ipad[i] = 0x36 ^ keyDecoded[i];
+    }
+    const subHash = crypto
+      .createHash('sha1')
+      .update(Buffer.concat([ipad, data]))
+      .digest();
+    const hash = crypto
+      .createHash('sha1')
+      .update(Buffer.concat([opad, subHash]))
+      .digest();
+    const result = hash.toString('base64');
+    return result;
   },
 
   ...globalConfig,

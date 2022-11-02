@@ -19,12 +19,12 @@ class Socket extends net.Socket {
     super(opts);
     const { proxy = {} } = opts;
     if (!proxy || !proxy.host) return;
-    const { port = 1080, host = '', username = '', password = '', type = 'socks5' } = proxy;
-    if (username && !password) throw new Error('You need to pass the password params.');
+    const { port = 1080, host = '', userId = '', password = '', type = 'socks5' } = proxy;
+    if (userId && !password) throw new Error('You need to pass the password params.');
     this.proxy = proxy;
     this.proxyHost = host;
     this.proxyPort = port;
-    this.proxyUsername = username;
+    this.proxyUsername = userId;
     this.proxyPassword = password;
     this.proxyType = type;
     if (!['socks5', 'http'].includes(type)) throw new Error(`Not support proxy type: ${type}`);
