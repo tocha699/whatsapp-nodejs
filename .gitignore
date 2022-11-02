@@ -3,9 +3,6 @@ yarn-error.log
 package-lock.json
 yarn.lock
 
-logs
-node_modules
-coverage
 .idea
 run
 .DS_Store
@@ -19,3 +16,8 @@ scripts
 docs
 tmp
 shell
+dist
+logs
+node_modules
+coverage
+src/bin/darwin
