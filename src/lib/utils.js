@@ -9,7 +9,7 @@ const lastname = require('./data/lastname');
 const firstnameLen = firstname.length;
 const lastnameLen = lastname.length;
 const uuidv4 = v4;
-const libsignal = require('./libsignal-protocol');
+const libsignal = require('./libsignal');
 
 module.exports = {
   KEY_SIZE: 32,

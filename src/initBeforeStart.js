@@ -1,4 +1,4 @@
-const libsignal = require('./lib/libsignal-protocol');
+const libsignal = require('./lib/libsignal');
 const db = require('./db');
 const logger = require('./logger');
 
