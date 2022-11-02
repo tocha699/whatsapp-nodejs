@@ -15,6 +15,7 @@
     "startSocketDev": "NODE_ENV=development pm2 start socket.js -i max",
     "stop": "npm run stopHttp && npm run stopSocket",
     "stopHttp": "egg-scripts stop --title=egg-server-whatsapp",
+    "s": "node shell/s.js",
     "stopSocket": "pm2 delete all",
     "reset": "npm run stop && npm run start",
     "resetHttp": "npm run stopHttp && npm run startHttp",
