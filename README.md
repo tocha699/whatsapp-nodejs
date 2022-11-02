@@ -1,6 +1,10 @@
 For business cooperation or customization needs, please contact the following email: yisbug@gmail.com
 
-### Abount
+### About
+
+[中文](README_CN.md)
+
+[English](README.md)
 
 This is a WhatsApp communication protocol SDK based on WhatsApp Android client, which means that you can build any WhatsApp client based on this SDK, or complete some specific requirements.
 
@@ -14,7 +18,7 @@ TODO:
 - [x] register 2022.10.31
 - [ ] send message 2022.11.15
 
-### Useage
+### Usage
 
 #### Installation
 

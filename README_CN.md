@@ -2,6 +2,10 @@
 
 ### 关于
 
+[中文](README_CN.md)
+
+[English](README.md)
+
 这是一个基于 WhatsApp Android 客户端的 WhatsApp 通信协议 SDK，意味着您可以基于这套 SDK 打造任意 WhatsApp 客户端，或者完成一些特定的需求.
 
 官方最新版本：https://www.whatsapp.com/android/
