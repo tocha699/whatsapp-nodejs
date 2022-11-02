@@ -16,7 +16,7 @@ TODO:
 
 - [x] 完成登陆 2022.10.15
 - [x] 完成注册 2022.10.31
-- [ ] 完成收发消息 2022.11.15
+- [x] 完成收发消息 2022.11.15
 
 ### Useage
 
@@ -109,6 +109,38 @@ const main = async () => {
   const res = await whatsapp.login();
   // {status:'success'}
   // {status:'error'}
+};
+
+main();
+```
+
+#### Send Text Message
+
+```javascript
+const { Whatsapp } = require('whatsapp-nodejs');
+
+const main = async () => {
+  const whatsapp = new Whatsapp({
+    mongodb: 'mongodb://localhost:27017/whatsapp',
+  });
+  await whatsapp.init({
+    mobile: '8613888888888', // cc is required, for example, china is +86
+    proxy: {
+      host: '127.0.0.1',
+      port: 1080,
+      userId: 'test',
+      password: 'test',
+    },
+  });
+
+  const res = await whatsapp.login();
+  // {status:'success'}
+  // {status:'error'}
+
+  res = await whatsapp.sendContactTextMessage({
+    jid: '8613666666666',
+    message: 'hello world.',
+  });
 };
 
 main();

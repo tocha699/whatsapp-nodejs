@@ -2,6 +2,8 @@ const initBeforeStart = require('./initBeforeStart');
 const utils = require('./lib/utils');
 const WARequest = require('./lib/WARequest');
 
+const libsignal = require('./lib/libsignal');
+
 const SocketManager = require('./SocketManager');
 const db = require('./db');
 const ProtocolTreeNode = require('./packet/ProtocolTreeNode');
@@ -9,6 +11,14 @@ const config = require('./config');
 const accountStore = require('./store/account');
 const Signal = require('./protocol/signal');
 
+const Message = require('./protobuf/pb').Message.Message;
+
+const GetKeysIqProtocolEntity = require('./packet/GetKeysIqProtocolEntity');
+const ResultGetKeysIqProtocolEntity = require('./packet/ResultGetKeysIqProtocolEntity');
+const EncProtocolEntity = require('./packet/EncProtocolEntity');
+const EncryptedMessageProtocolEntity = require('./packet/EncryptedMessageProtocolEntity');
+
+const { SignalProtocolAddress } = libsignal;
 class Whatsapp {
   constructor(opts = {}) {
     this.socketManager = new SocketManager();
@@ -41,7 +51,7 @@ class Whatsapp {
     await this.signal.init();
   }
 
-  // 获取短信验证码
+  // get sms code
   async sms() {
     const account = await accountStore.initAccount(this.opts);
 
@@ -74,9 +84,9 @@ class Whatsapp {
     let response;
     try {
       response = await request.get();
-      console.info('获取短信验证码===>', response);
+      console.info('get sms code===>', response);
     } catch (e) {
-      console.info(`获取短信验证码失败：${e.message}`);
+      console.info(`get sms code failed: ${e.message}`);
       console.log(e.stack);
       throw new Error(e);
     }
@@ -86,7 +96,7 @@ class Whatsapp {
     return { status: 'error', data: response };
   }
 
-  // 使用验证码注册
+  // use sms code to register
   async register(params) {
     const account = await accountStore.initAccount(this.opts);
 
@@ -115,9 +125,9 @@ class Whatsapp {
     let response;
     try {
       response = await request.get();
-      console.info('通过验证码注册===>', response);
+      console.info('use code to register ===>', response);
     } catch (e) {
-      console.error(`通过验证码注册失败`, e);
+      console.error(`use code to register failed`, e);
       throw new Error(e);
     }
     // {
@@ -136,7 +146,7 @@ class Whatsapp {
   async login() {
     try {
       const account = await db.findAccount(this.mobile);
-      if (!account) throw new Error('账户不存在');
+      if (!account) throw new Error('The account does not exist, please check the database');
       account.version = config.version;
       this.socketName = await this.socketManager.initWASocket(this.opts, account);
       this.waSocketClient = this.socketManager.getWASocketClient(this.socketName);
@@ -177,6 +187,188 @@ class Whatsapp {
     }
   }
 
+  async assertLogin() {
+    if (!this.isLogin) throw new Error('need login');
+  }
+
+  async sendContactTextMessage(params) {
+    const { jid, message } = params;
+    await this.assertLogin();
+
+    const messageBuffer = Message.encode(
+      Message.create({
+        conversation: message,
+      })
+    ).finish();
+    // check session
+    const isExists = await this.signal.session_exists(jid);
+    if (!isExists) await this.getKeys([jid]);
+    // create node
+    const encryptData = await this.signal.encrypt(jid, messageBuffer);
+    const msgType = encryptData.type === 1 ? 'msg' : 'pkmsg';
+    const encNode = new EncProtocolEntity(msgType, 2, Buffer.from(encryptData.body));
+    const messageNode = new EncryptedMessageProtocolEntity([encNode], 'text', {
+      recipient: utils.normalize(jid),
+    }).toProtocolTreeNode();
+
+    const node = await this.sendNode(messageNode);
+    // save to db for retry
+    await this.signal.storeMessage(
+      jid,
+      messageNode.getAttr('id'),
+      messageNode.attributes,
+      messageBuffer.toString('base64')
+    );
+    return node.toJSON();
+  }
+
+  async getKeys(recipientIds) {
+    const getJidNode = new GetKeysIqProtocolEntity(
+      recipientIds.map(recipientId => {
+        return utils.normalize(recipientId);
+      })
+    ).toProtocolTreeNode();
+    const node = await this.sendNode(getJidNode);
+    if (node.getAttributeValue('type') === 'error')
+      throw new Error(node.toJSON().children[0].props.text);
+    const entity = ResultGetKeysIqProtocolEntity.fromProtocolTreeNode(node);
+    const resultJids = entity.getJids();
+    for (let i = 0; i < resultJids.length; i++) {
+      const jid = resultJids[i];
+      const recipient_id = jid.split('@')[0];
+      const preKeyBundle = entity.getPreKeyBundleFor(jid);
+      await this.signal.create_session(new SignalProtocolAddress(recipient_id, 1), preKeyBundle);
+    }
+    return node;
+  }
+
+  onReceipt(node) {
+    const participant = node.getAttr('participant');
+    if (participant) {
+      return this.onGroupReceipt(node);
+    }
+    return this.onContactReceipt(node);
+  }
+
+  onGroupReceipt(node) {
+    const type = node.getAttr('type');
+    const from = node.getAttr('from');
+    const participant = node.getAttr('participant');
+    const id = node.getAttr('id');
+    const t = node.getAttr('t');
+    const offline = node.getAttr('offline');
+    const className = node.getAttr('class');
+    if (!type) {
+      const o = {
+        to: from,
+        id,
+        participant,
+        class: 'receipt',
+      };
+      if (className) o.class = className;
+      if (t) o.t = t;
+      if (offline) o.offline = String(offline);
+      this.sendAck(o);
+      return;
+    }
+    if (type === 'read') {
+      const o = {
+        to: from,
+        id,
+        type,
+        participant,
+        class: 'receipt',
+      };
+      if (className) o.class = className;
+      if (t) o.t = t;
+      if (offline) o.offline = String(offline);
+      this.sendAck(o);
+      return;
+    }
+    if (type === 'retry') {
+      const o = {
+        to: from,
+        type: 'retry',
+        id,
+        participant,
+        class: 'receipt',
+      };
+      this.sendAck(o);
+      // this.retrySendGroupMessage(from.split('@')[0], participant.split('@')[0], id);
+      return;
+    }
+    const o = {
+      type,
+      to: from,
+      class: 'receipt',
+    };
+    if (className) o.class = className;
+    if (t) o.t = t;
+    if (offline) o.offline = String(offline);
+    this.sendAck(o);
+  }
+
+  onContactReceipt(node) {
+    const type = node.getAttr('type');
+    const from = node.getAttr('from');
+    const jid = from.split('@')[0];
+    const id = node.getAttr('id');
+    const t = node.getAttr('t');
+    const offline = node.getAttr('offline');
+    const className = node.getAttr('class');
+    if (!type) {
+      if (jid.match('-')) {
+        this.sendAck({
+          to: from,
+          id,
+          class: 'receipt',
+        });
+        return;
+      }
+      // 收到消息
+      const o = {
+        to: from,
+        id,
+        class: 'receipt',
+      };
+      if (className) o.class = className;
+      this.sendAck(o);
+      return;
+    }
+    if (type === 'read') {
+      const o = {
+        to: from,
+        id,
+        type,
+        class: 'receipt',
+      };
+      if (className) o.class = className;
+      this.sendAck(o);
+      // this.sendSimpleNode(node);
+      return;
+    }
+    if (type === 'retry') {
+      const o = {
+        to: from,
+        type: 'retry',
+        id,
+        class: 'receipt',
+      };
+      this.sendAck(o);
+      // this.retrySendContactMessage(jid, id);
+      return;
+    }
+    const o = {
+      type,
+      to: from,
+      class: 'receipt',
+    };
+    if (className) o.class = className;
+    if (t) o.t = t;
+    if (offline) o.offline = String(offline);
+    this.sendAck(o);
+  }
+
   async onMessage(node) {
     const participant = node.getAttr('participant');
     const isGroup = !!participant;
@@ -205,7 +397,7 @@ class Whatsapp {
     const tag = node.tag;
     const from = node.getAttr('from');
     const participant = node.getAttr('participant');
-    const notify = node.getAttr('notify'); // 对方昵称
+    const notify = node.getAttr('notify'); // pushName
     const type = node.getAttr('type');
     const id = node.getAttr('id');
     const t = node.getAttr('t');
@@ -223,7 +415,7 @@ class Whatsapp {
     });
 
     if (type !== 'text' && type !== 'media') {
-      this.client.send(tag, { status: 'error' }, `不支持的消息类型：${type}`);
+      this.client.send(tag, { status: 'error' }, `not support message type ：${type}`);
       this.sendReceipt({
         id,
         to: from,
@@ -240,9 +432,43 @@ class Whatsapp {
     }
   }
 
+  onNotificationPsa(node) {
+    this.sendAck({
+      id: node.getAttr('id'),
+      class: 'notification',
+      type: 'psa',
+      to: node.getAttr('from'),
+      participant: node.getAttr('participant'),
+      t: node.getAttr('t'),
+    });
+  }
+
+  onNotificationEncrypt(node) {
+    this.sendAck({
+      type: 'encrypt',
+      class: 'notification',
+      id: node.getAttr('id'),
+      to: node.getAttr('from'),
+      t: node.getAttr('t'),
+    });
+  }
+
+  onNotificationGroup(node) {
+    this.sendAck({
+      type: 'w:gp2',
+      id: node.getAttr('id'),
+      to: node.getAttr('from'),
+      class: 'notification',
+      participant: node.getAttr('participant'),
+    });
+  }
+
   onNotification(node) {
     const type = node.getAttr('type');
-    // 其他类型通知
+    if (type === 'psa') return this.onNotificationPsa(node);
+    if (type === 'encrypt') return this.onNotificationEncrypt(node);
+    if (type === 'w:gp2') return this.onNotificationGroup(node); //
+    // other type
     this.sendAck(
       {
         type,
@@ -284,7 +510,7 @@ class Whatsapp {
   }
 
   async sendNode(node) {
-    this.waSocketClient.sendNode(node);
+    return await this.waSocketClient.sendNode(node);
   }
 }
 

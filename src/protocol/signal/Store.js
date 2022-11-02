@@ -57,7 +57,7 @@ class SignalProtocolStore {
     if (!doc) {
       doc = await db.message.findOne({ mobile: this.mobile, to, id: 'long' });
       if (!doc) {
-        throw new Error(`消息不存在：${id}，to：${to}`);
+        throw new Error(`Message does not exist: ${id}, to: ${to}`);
       }
     }
     return doc;

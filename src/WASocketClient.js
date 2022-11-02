@@ -2,6 +2,7 @@ const EventEmitter = require('events');
 const SocketClientProxy = require('./lib/SocketClientProxy');
 const HandShake = require('./protocol/handshake');
 const Decoder = require('./protocol/decoder');
+const utils = require('./lib/utils');
 
 class WASocketClient extends EventEmitter {
   constructor(opts, socketManager) {
@@ -42,6 +43,8 @@ class WASocketClient extends EventEmitter {
 
     // 缓冲区
     this.recv = Buffer.alloc(0);
+
+    this._id = 0;
   }
 
   destroy() {
@@ -135,12 +138,16 @@ class WASocketClient extends EventEmitter {
         const decoder = new Decoder();
         const node = await decoder.getProtocolTreeNode(recv);
         if (node && node.tag) {
+          const id = node.getAttr('id');
+          if (id) {
+            this.emit(`node-id-${id}`, node);
+          }
           this.emit('node', node);
         }
         const str = node.toString();
         console.info('recv ==>', str);
       } catch (e) {
-        console.error('解包失败', e, Buffer.from(recv).toString('hex'));
+        console.error('parse server data error', e, Buffer.from(recv).toString('hex'));
       }
     } else {
       this.emit('data', recv);
@@ -149,9 +156,31 @@ class WASocketClient extends EventEmitter {
     this.parseData();
   }
 
+  async subId(id) {
+    return new Promise(resolve => {
+      this.once(`node-id-${id}`, node => {
+        resolve(node);
+      });
+    });
+  }
+
   async sendNode(node) {
-    console.info('send ==>', node.toString());
+    let id = node.getAttr('id');
+    if (id === 'short' || id === 'long') {
+      this._id++;
+      id =
+        id === 'short'
+          ? utils.generateId(this._id || 0)
+          : `${String(Math.round(Date.now() / 1000))}-${utils.generateId(this._id)}`;
+      node.setAttr('id', id);
+    }
+    const str = node.toString().substr(0, 10000);
+    console.info('send ==>', str);
     this.send(node.toBuffer());
+    if (id) {
+      const resNode = await this.subId(id);
+      return resNode;
+    }
   }
 
   toBuffer(plaintext) {
@@ -188,7 +217,7 @@ class WASocketClient extends EventEmitter {
       if (header) this.write(this.generateHeader(buffer.length));
       this.write(buffer);
     } catch (e) {
-      this.console.error('发送数据失败', e);
+      this.console.error('send data to server error', e);
     }
   }
 

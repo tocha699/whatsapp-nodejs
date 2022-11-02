@@ -9,7 +9,7 @@ console.warn('warn');
 console.error('error');
 console.fatal('fatal');
 
-// const e = new Error('失败');
+// const e = new Error('failed');
 // console.error(e, e.message, e.stack);
 
 const childLogger = logger.child({ reqId: '1' }, false);
