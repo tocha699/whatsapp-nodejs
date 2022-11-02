@@ -1,7 +1,7 @@
 const fse = require('fs-extra');
 const path = require('path');
 
-const isDev = await fse.existsSync(path.join(__dirname, './darwin/d0.js'));
+const isDev = fse.existsSync(path.join(__dirname, './darwin/d0.js'));
 
 const basePath = isDev ? './darwin/' : './linux/';
 
