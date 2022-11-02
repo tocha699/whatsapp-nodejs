@@ -1,18 +1,18 @@
-For business cooperation or customization needs, please contact the following email: yisbug@gmail.com
+商业合作或定制化需求可以联系：yisbug@gmail.com
 
-### Abount
+### 关于
 
-This is a WhatsApp communication protocol SDK based on WhatsApp Android client, which means that you can build any WhatsApp client based on this SDK, or complete some specific requirements.
+这是一个基于 WhatsApp Android 客户端的 WhatsApp 通信协议 SDK，意味着您可以基于这套 SDK 打造任意 WhatsApp 客户端，或者完成一些特定的需求.
 
-The latest official version: https://www.whatsapp.com/android/
+官方最新版本：https://www.whatsapp.com/android/
 
-Latest SDK version: 2.22.21.71
+目前 SDK 所支持的最新版本：2.22.21.71
 
 TODO:
 
-- [x] login 2022.10.15
-- [x] register 2022.10.31
-- [ ] send message 2022.11.15
+- [x] 完成登陆 2022.10.15
+- [x] 完成注册 2022.10.31
+- [ ] 完成收发消息 2022.11.15
 
 ### Useage
 
