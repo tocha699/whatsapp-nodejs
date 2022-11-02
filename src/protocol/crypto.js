@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const curve = require('curve25519-n');
-const PKCS7 = require('./PKCS7');
+const PKCS7 = require('./pkcs7/PKCS7');
 
 module.exports = {
   randomBytes(len) {
