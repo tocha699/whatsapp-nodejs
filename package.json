@@ -39,6 +39,7 @@
   ],
   "author": "yisbug@gmail.com",
   "dependencies": {
+    "@noble/curves": "^1.8.1",
     "@privacyresearch/libsignal-protocol-typescript": "0.0.9",
     "bunyan": "^1.8.15",
     "bunyan-debug-stream": "^2.0.0",

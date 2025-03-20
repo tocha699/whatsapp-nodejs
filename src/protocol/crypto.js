@@ -1,5 +1,6 @@
 const crypto = require('crypto');
-const curve = require('curve25519-n');
+// const curve = require('curve25519-n');
+const { x25519 } = require('@noble/curves/ed25519');
 const PKCS7 = require('./pkcs7/PKCS7');
 
 module.exports = {
@@ -20,8 +21,12 @@ module.exports = {
   },
 
   dh(keyPair, key) {
-    const privateKey = curve.makeSecretKey(this.toBuffer(keyPair.private));
-    const aeskey = curve.deriveSharedSecret(privateKey, this.toBuffer(key)).toString('base64');
+    // const privateKey = curve.makeSecretKey(this.toBuffer(keyPair.private));
+    // const aeskey = curve.deriveSharedSecret(privateKey, this.toBuffer(key)).toString('base64');
+
+    const privateKey = this.toBuffer(keyPair.private);
+    // const aeskey = curve.deriveSharedSecret(privateKey, this.toBuffer(key)).toString('base64');
+    const aeskey = x25519.getSharedSecret(privateKey, this.toBuffer(key)).toString('base64');
     return Buffer.from(aeskey, 'base64');
   },
 
