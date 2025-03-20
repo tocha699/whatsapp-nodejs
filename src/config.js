@@ -1,4 +1,4 @@
-const globalConfig = require('/etc/whatsapp.json');
+// const globalConfig = require('/etc/whatsapp.json');
 const crypto = require('crypto');
 
 module.exports = {
@@ -27,8 +27,10 @@ module.exports = {
 
   businessKey:
     'VROA1coOL6M5ywTDPnPB/6CwjpIl2UjqEbIDpuf4TtgbPMj9sEhhi3gqtaG1PM/Jy4VODs6UQE7SMLcqzf/XVQ==',
-  businessVersion: '2.21.15.20',
-  businessClassMd5: '/ytCzbMZx+YYOXS6fB0pcg==',
+  // businessVersion: '2.21.15.20',
+  // businessClassMd5: '/ytCzbMZx+YYOXS6fB0pcg==',
+  businessVersion: '2.25.4.76',
+  businessClassMd5: 'ln4c7jL+JvaHzPTeY6AshA==',
 
   osName: 'Android',
   osVersion: '8.0.0',
@@ -90,5 +92,5 @@ module.exports = {
     return result;
   },
 
-  ...globalConfig,
+  // ...globalConfig,
 };

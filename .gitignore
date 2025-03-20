@@ -20,4 +20,4 @@ dist
 logs
 node_modules
 coverage
-src/bin/darwin
+# src/bin/darwin
