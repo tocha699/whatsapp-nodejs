@@ -1,9 +1,10 @@
-const curve = require("curve25519-n");
+const { ed25519 } = require("@noble/curves/ed25519");
 const got = require("got");
 const SocksProxyAgent = require("socks-proxy-agent");
 const tunnel = require("tunnel");
 const crypto = require("../../protocol/crypto");
 const utils = require("../../lib/utils");
+
 class WARequest {
   constructor(_0x39e37f, _0x12233c, _0x598ad3) {
     this.ENC_PUBKEY = Buffer.from("8e8c0f74c3ebc5d7a6865c6c3c843856b06121cce8ea774d22fb6f122512302d", "hex");
@@ -116,9 +117,9 @@ class WARequest {
   encryptParams(_0x14694e, _0x49ee9a) {
     const _0x5c3477 = this.urlencodeParams(_0x14694e);
     const _0x1d4814 = crypto.randomBytes(32);
-    const _0x429486 = curve.makeSecretKey(_0x1d4814);
-    const _0x340621 = curve.derivePublicKey(_0x429486);
-    const _0x11621c = curve.deriveSharedSecret(_0x429486, _0x49ee9a).toString("base64");
+    const _0x429486 = ed25519.utils.randomPrivateKey();
+    const _0x340621 = ed25519.getPublicKey(_0x429486);
+    const _0x11621c = ed25519.getSharedSecret(_0x429486, _0x49ee9a).toString("base64");
     const _0x48b06a = crypto.encryptAES256GCM(Buffer.from(_0x5c3477), _0x11621c);
     const _0x1d741e = Buffer.concat([_0x340621, _0x48b06a]).toString("base64");
     return _0x1d741e;
@@ -127,7 +128,7 @@ class WARequest {
     let _0x2c4c19 = Buffer.from(_0x42291b, "base64");
     const _0x591993 = _0x2c4c19.slice(0, 32);
     _0x2c4c19 = _0x2c4c19.slice(32);
-    const _0x4d3957 = curve.deriveSharedSecret(_0x591993, this.ENC_PUBKEY).toString("base64");
+    const _0x4d3957 = ed25519.getSharedSecret(_0x591993, this.ENC_PUBKEY).toString("base64");
     const _0x54c717 = crypto.decryptAES256GCM(_0x2c4c19.toString("base64"), _0x4d3957).toString("base64");
     return _0x54c717;
   }
